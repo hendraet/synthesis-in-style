@@ -1,0 +1,14 @@
+{
+  "class_to_color_map": {
+    "background": "#000000",
+    "printed_text": "#0000FF",
+    "handwritten_text": "#FF0000"
+  },
+  "keys_for_finegrained_segmentation": ["12", "13"],
+  "keys_for_class_determination": ["8", "9"],
+  "keys_to_merge": {},
+  "segmenter_type": "black_white_handwritten_printed",
+  "only_keep_overlapping": false,
+  "min_class_contour_area": 50,
+  "seed": 1
+}
