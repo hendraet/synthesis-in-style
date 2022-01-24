@@ -148,7 +148,7 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet(n_layers, stride, use_pretrained_resnet):
+def resnet(n_layers, stride, use_pretrained_resnet, pretrained_path):
     layers = {
         50: [3, 4, 6, 3],
         101: [3, 4, 23, 3],
@@ -157,13 +157,6 @@ def resnet(n_layers, stride, use_pretrained_resnet):
 
     net = ResNet(Bottleneck, layers=layers, stride=stride)
     if use_pretrained_resnet:
-        file_path = pathlib.Path(__file__).parent.resolve()
-        relative_pretrained_path = {
-            50: '/models/ema_net_models/resnet50-ebb6acbb.pth',
-            101: '/models/ema_net_models/resnet101-2a57e44d.pth',
-            152: '/models/ema_net_models/resnet152-0d43d698.pth',
-        }[n_layers]
-        pretrained_path = file_path / relative_pretrained_path
         assert pretrained_path.exists(), f'There does not seem to be a pretrained model at {pretrained_path}. Make sure ' \
                                          f'you downloaded the correct model and saved it there.'
         state_dict = torch.load(pretrained_path)
@@ -273,10 +266,11 @@ class EMAU(nn.Module):
 class EMANet(BaseSegmenter):
     ''' Implementation of EMANet (ICCV 2019 Oral).'''
     def __init__(self, num_classes, n_layers, stride=8, stage_num=3, ignore_label=255, background_class_id: int = 0,
-                 min_confidence: float = 0.0, min_contour_area: int = 0, use_pretrained_resnet=True):
+                 min_confidence: float = 0.0, min_contour_area: int = 0, use_pretrained_resnet=True,
+                 pretrained_path: str = ""):
         super().__init__(background_class_id, min_confidence, min_contour_area)
         self.num_classes = num_classes
-        backbone = resnet(n_layers, stride, use_pretrained_resnet)
+        backbone = resnet(n_layers, stride, use_pretrained_resnet, pretrained_path)
         self.extractor = nn.Sequential(
             backbone.conv1,
             backbone.bn1,

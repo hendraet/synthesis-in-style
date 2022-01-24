@@ -21,7 +21,8 @@ class EMANetTrainBuilder(BaseSingleNetworkTrainBuilder):
     def _initialize_segmentation_network(self):
         use_pretrained_resnet = True if self.config['fine_tune'] is None else False
         segmentation_network = EMANet(self.config['num_classes'], self.config['n_layers'],
-                                      use_pretrained_resnet=use_pretrained_resnet)
+                                      use_pretrained_resnet=use_pretrained_resnet,
+                                      pretrained_path=self.config['pretrained_path'])
         self.segmentation_network = segmentation_network
 
     def _prepare_segmentation_network(self, segmentation_network: BaseSegmenter,
