@@ -157,9 +157,10 @@ def resnet(n_layers, stride, use_pretrained_resnet, pretrained_path):
 
     net = ResNet(Bottleneck, layers=layers, stride=stride)
     if use_pretrained_resnet:
-        assert pretrained_path.exists(), f'There does not seem to be a pretrained model at {pretrained_path}. Make sure ' \
+        path = pathlib.Path(pretrained_path)
+        assert path.exists(), f'There does not seem to be a pretrained model at {pretrained_path}. Make sure ' \
                                          f'you downloaded the correct model and saved it there.'
-        state_dict = torch.load(pretrained_path)
+        state_dict = torch.load(path)
         net.load_state_dict(state_dict, strict=False)
 
     return net
