@@ -19,7 +19,7 @@ cd training_tools && pip3 install -e .
 
 ## Usage
 
-For information how to use the code in this repository, please refer to the [wiki](https://github.com/hendraet/synthesis-in-style/wiki/0.-Overview)
+For information how to use the code in this repository, please refer to the [wiki](https://github.com/hendraet/synthesis-in-style/wiki/)
 
 ## License and Credits
 
