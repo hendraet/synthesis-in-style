@@ -30,7 +30,7 @@ def sanity_check_config(config: dict):
         choices = ['DocUFCN', 'TransUNet', 'EMANet', 'PixelEnsemble']
         assert config['network'] in choices, f'The network must be one of: {", ".join(choices)}'
     if 'dataset' in config:
-        choices = ['wpi', 'nvidia', 'dataset_gan']
+        choices = ['wpi', 'dataset_gan']
         assert config['dataset'] in choices, f'The dataset must be one of: {", ".join(choices)}'
 
 
