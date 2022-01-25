@@ -5,6 +5,8 @@ The trained models and benchmark dataset used for evaluation can be found [here]
 
 ## Installation
 
+Make sure that Python (version >= 3.8) is installed.
+
 In `stylegan_code_finder` directory execute: 
 ```
 pip3 install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable.html
@@ -17,9 +19,11 @@ git submodule update
 cd training_tools && pip3 install -e .
 ```
 
+For building the required cuda extensions `ninja` is required. (Installation under Ubuntu: `sudo apt-get install ninja-build`) 
+
 ## Usage
 
-For information how to use the code in this repository, please refer to the [wiki](https://github.com/hendraet/synthesis-in-style/wiki/)
+For information how to use the code in this repository please refer to the [wiki](https://github.com/hendraet/synthesis-in-style/wiki/).
 
 ## License and Credits
 
