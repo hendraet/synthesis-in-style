@@ -21,7 +21,11 @@ cd training_tools && pip3 install -e .
 
 For information how to use the code in this repository, please refer to the [wiki](https://github.com/hendraet/synthesis-in-style/wiki/How-to-Train-a-Segmentation-Model)
 
-## License
+## License and Credits
+
+The code used for the [EMANet](https://arxiv.org/abs/1907.13426) implementation is taken from [here](https://github.com/XiaLiPKU/EMANet).
+
+The code for [TransUNet](https://arxiv.org/abs/2102.04306) was taken from [this](https://github.com/Beckschen/TransUNet) repository.
 
 StyleGAN2 implementation and custom CUDA kernel codes are taken from official the official [NVIDIA repository](https://github.com/NVlabs/stylegan2), which is published under Nvidia Source Code License-NC.
 
