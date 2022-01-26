@@ -27,7 +27,7 @@ em_mom: 0.9                   # Hyperparameter for momentum of expectation maxim
 
 # data options
 num_classes: 3                  # The number of classes present in the dataset
-pretrained_path: /models/ema_net_models/resnet101-2a57e44d.pth  # path to pretrained segmentation model
+pretrained_path: /home/hendrik/wpi-gan-generator-project/models/ema_net_models/resnet101-2a57e44d.pth  # path to pretrained segmentation model
 input_dim: 3                  # number of image channels [1/3]
 num_workers: 1                # number of data loading threads
 image_size: 256               # first resize the shortest image side to this size

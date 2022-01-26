@@ -23,7 +23,7 @@ cosine_max_update_iter: 4000 # After this number of iterations a CosineLRSchedul
 
 # data options
 num_classes: 3                  # The number of classes present in the dataset
-pretrained_path: /models/trans_u_net_models/vit_checkpoint/imagenet21k/R50+ViT-B_16.npz  # path to pretrained segmentation model
+pretrained_path: /home/hendrik/wpi-gan-generator-project/models/trans_u_net_models/vit_checkpoint/imagenet21k/R50+ViT-B_16.npz  # path to pretrained segmentation model
 input_dim: 3                  # number of image channels [1/3]
 num_workers: 0                # number of data loading threads
 image_size: 224               # first resize the shortest image side to this size
