@@ -31,10 +31,10 @@ downsample_size: 256
 num_models: 3                 # Number of trained models
 numpy_class: 3
 
-tensor_path: /home/datasets/vision/wpi/segmentation/dataset_gan_train/stylegan_2_balanced_bw/tensors.npz  # path to the tensors used for the dataGAN dataset
+tensor_path: [path to tensors.npz file]  # path to the tensors used for the dataGAN dataset
 class_weigths: [1, 1, 1]      #class weights for loss
 random_sampling: False
 class_probability: 0.5        # class probability for random sampling
 generate: True                # should dataset be generated or not
-checkpoint: /home/models/wpi/trained_stylegan_models/wpi_auction_catalogues_only_handwriting_same_size_256px_balanced_black_and_white/2021-04-26T14:39:39.954866/checkpoints/100000.pt # checkpoint for a dataGAN generator model
+checkpoint: [path to stylegan checkpoint] # checkpoint for a dataGAN generator model
 upsample_mode: "bilinear"     # mode for upsample

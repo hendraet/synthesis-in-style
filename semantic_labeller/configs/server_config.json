@@ -1,5 +1,5 @@
 {
-  "base_dir": "/mnt/ssd1/jona/semantic_segmentation",
+  "base_dir": "[PATH TO TRAINED MODEL]",
   "num_clusters": 20,
   "class_colors": "configs/handwriting_colors.json"
 }
