@@ -12,13 +12,6 @@ In `stylegan_code_finder` directory execute:
 pip3 install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable.html
 ```
 
-In the root directory execute:
-``` 
-git submodule init
-git submodule update
-cd training_tools && pip3 install -e .
-```
-
 For building the required cuda extensions `ninja` is required. (Installation under Ubuntu: `sudo apt-get install ninja-build`) 
 
 ## Usage
