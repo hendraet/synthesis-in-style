@@ -21,6 +21,10 @@ cd training_tools && pip3 install -e .
 
 For building the required cuda extensions `ninja` is required. (Installation under Ubuntu: `sudo apt-get install ninja-build`) 
 
+## Docker Image
+
+You can also find a docker image with all necessary dependencies on [Docker Hub](https://hub.docker.com/repository/docker/hendraet/synthesis-in-style).
+
 ## Usage
 
 For information how to use the code in this repository please refer to the [wiki](https://github.com/hendraet/synthesis-in-style/wiki/).
