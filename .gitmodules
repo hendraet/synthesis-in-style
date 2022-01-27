@@ -1,3 +1,0 @@
-[submodule "training_tools"]
-	path = training_tools
-	url = git@github.com:Bartzi/pytorch-training.git
