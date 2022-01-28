@@ -1,0 +1,4 @@
+msgpack
+Pillow>=7.1.0
+celery
+pydevd-pycharm~=213.5744.248
