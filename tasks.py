@@ -1,11 +1,11 @@
+import io
+
 import msgpack
 import os
-import sys
 from io import BytesIO
-from pathlib import Path
 
 import celery
-from PIL import Image
+from PIL import Image, ImageOps
 from celery import Celery
 
 
@@ -31,15 +31,20 @@ def segment(task_data):
     image_data = BytesIO(bytes)
     image_data.seek(0)
 
-    # print("Before trace")
+    print("Before trace")
     # import pydevd_pycharm
-    # pydevd_pycharm.settrace('0.0.0.0', port=8001, stdoutToServer=True, stderrToServer=True)
-    # print("After trace")
+    # pydevd_pycharm.settrace('0.0.0.0', port=5678, stdoutToServer=True, stderrToServer=True)
+    print("After trace")
 
     with Image.open(image_data) as decoded_image:
         decoded_image = decoded_image.convert('RGB')
-        result = {
-            "segmentation": "Test"
-        }
 
-    return result
+        inverted_image = ImageOps.invert(decoded_image)
+
+        byte_array = io.BytesIO()
+        inverted_image.save(byte_array, format='PNG')
+        byte_array = byte_array.getvalue()
+
+        packed_byte_array = msgpack.packb(byte_array)
+
+    return packed_byte_array
