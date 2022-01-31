@@ -31,11 +31,6 @@ def segment(task_data):
     image_data = BytesIO(bytes)
     image_data.seek(0)
 
-    print("Before trace")
-    # import pydevd_pycharm
-    # pydevd_pycharm.settrace('0.0.0.0', port=5678, stdoutToServer=True, stderrToServer=True)
-    print("After trace")
-
     with Image.open(image_data) as decoded_image:
         decoded_image = decoded_image.convert('RGB')
 
