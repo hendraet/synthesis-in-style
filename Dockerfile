@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y \
 	zsh \
 	python3-pip \
 	ninja-build \
-	cython
+	cython \
+    netcat
 
 ARG UNAME=user
 ARG UID=10001
@@ -27,13 +28,20 @@ ARG BASE=/app
 RUN mkdir -p ${BASE}
 
 COPY stylegan_code_finder/requirements.txt ${BASE}/requirements.txt
+COPY stylegan_code_finder/requirements_docker.txt ${BASE}/requirements_docker.txt
 
 WORKDIR ${BASE}
-RUN pip3 install -r requirements.txt  -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip3 install -r requirements_docker.txt  -f https://download.pytorch.org/whl/torch_stable.html
 RUN pip3 uninstall -y pycocotools && pip3 install pycocotools==2.0.0
+
+ARG WAIT_DIR=/opt/wait-for
+RUN git clone https://github.com/eficode/wait-for.git ${WAIT_DIR}
+RUN chmod +x ${WAIT_DIR}/wait-for
 
 USER $UNAME
 RUN git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
 RUN cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
 
 CMD ["/bin/zsh"]
+
+
