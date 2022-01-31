@@ -5,14 +5,14 @@ from pathlib import Path
 import msgpack
 import os
 from io import BytesIO
+import numpy as np
 
 import celery
 import torch
-from PIL import Image, ImageOps
+from PIL import Image
 from celery import Celery
 
 from segmentation.analysis_segmenter import VotingAssemblySegmenter
-from segmentation.evaluation.analyze_image_segments import preprocess_images
 
 
 class SegmentationTask(celery.Task):
@@ -47,9 +47,11 @@ class SegmentationTask(celery.Task):
         checkpoint_path = config_path / model_config["checkpoint"]
         color_map_path = config_path / model_config["class_to_color_map"]
 
+        print(torch.cuda.is_available())
+
         self.segmenter = VotingAssemblySegmenter(
             checkpoint_path,
-            "cpu",
+            "cuda",
             color_map_path,
             max_image_size=int(model_config.get("max_image_size", 0)),
             print_progress=False,
@@ -59,10 +61,14 @@ class SegmentationTask(celery.Task):
     @torch.no_grad()
     def predict(self, image):
         assembled_prediction = self.segmenter.segment_image(image)
+        predicted_classes = torch.argmax(assembled_prediction, dim=0)
 
-        return assembled_prediction
+        rescaled_prediction = np.uint8(predicted_classes.cpu().numpy()) * 255
+
+        return Image.fromarray(rescaled_prediction)
 
 
+torch.multiprocessing.set_start_method('spawn')  # good solution !!!!
 broker_address = os.environ.get('BROKER_ADDRESS', 'localhost')
 app = Celery('wpi_demo', backend='rpc://', broker=f"pyamqp://guest@{broker_address}//")
 app.conf.update(
