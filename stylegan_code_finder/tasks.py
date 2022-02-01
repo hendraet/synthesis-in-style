@@ -41,13 +41,13 @@ class SegmentationTask(celery.Task):
 
         config_path = Path(self.config["model_config_path"])
         model_config_path = config_path / "config.json"
-        # hyperparameter_config_path = config_path / "hyperparameters.json"
+        hyperparameter_config_path = config_path / "hyperparameters.json"
 
         with model_config_path.open() as f:
             model_config = json.load(f)
 
-        # with hyperparameter_config_path.open() as f:
-        #     hyperparameter_config = json.load(f)
+        with hyperparameter_config_path.open() as f:
+            hyperparameter_config = json.load(f)
 
         checkpoint_path = config_path / model_config["checkpoint"]
         color_map_path = config_path / model_config["class_to_color_map"]
@@ -64,7 +64,7 @@ class SegmentationTask(celery.Task):
             show_confidence_in_segmentation=False
         )
 
-        # self.segmenter.set_hyperparams(hyperparameter_config)
+        self.segmenter.set_hyperparams(hyperparameter_config)
 
     @torch.no_grad()
     def predict(self, image):
