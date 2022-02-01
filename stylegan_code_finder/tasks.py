@@ -9,7 +9,7 @@ import numpy as np
 
 import celery
 import torch
-from PIL import Image
+from PIL import Image, ImageColor
 from celery import Celery
 
 from segmentation.analysis_segmenter import VotingAssemblySegmenter
@@ -33,6 +33,7 @@ class SegmentationTask(celery.Task):
             self.device = torch.device("cpu")
 
         self.segmenter = None
+        self.class_to_color_map = None
 
     def initialize(self):
         if self.segmenter is not None:
@@ -47,11 +48,12 @@ class SegmentationTask(celery.Task):
         checkpoint_path = config_path / model_config["checkpoint"]
         color_map_path = config_path / model_config["class_to_color_map"]
 
-        print(torch.cuda.is_available())
+        with color_map_path.open() as f:
+            self.class_to_color_map = json.load(f)
 
         self.segmenter = VotingAssemblySegmenter(
             checkpoint_path,
-            "cuda",
+            str(self.device),
             color_map_path,
             max_image_size=int(model_config.get("max_image_size", 0)),
             print_progress=False,
@@ -62,10 +64,20 @@ class SegmentationTask(celery.Task):
     def predict(self, image):
         assembled_prediction = self.segmenter.segment_image(image)
         predicted_classes = torch.argmax(assembled_prediction, dim=0)
+        rgb_segmentation = torch.zeros((predicted_classes.shape[0], predicted_classes.shape[1], 3), device=self.device)
 
-        rescaled_prediction = np.uint8(predicted_classes.cpu().numpy()) * 255
+        # Ugly but that's how we do it elsewhere as well
+        for id, name in enumerate(self.class_to_color_map):
+            colorstring = self.class_to_color_map[name]
+            color = ImageColor.getcolor(colorstring, "RGB")
+            color_tensor = torch.Tensor(color, device=self.device)
 
-        return Image.fromarray(rescaled_prediction)
+            indices = predicted_classes == id
+            rgb_segmentation[indices] = color_tensor
+
+        segmentation_image = np.uint8(rgb_segmentation.cpu().numpy())
+
+        return Image.fromarray(segmentation_image)
 
 
 torch.multiprocessing.set_start_method('spawn')  # good solution !!!!
