@@ -41,9 +41,13 @@ class SegmentationTask(celery.Task):
 
         config_path = Path(self.config["model_config_path"])
         model_config_path = config_path / "config.json"
+        # hyperparameter_config_path = config_path / "hyperparameters.json"
 
         with model_config_path.open() as f:
             model_config = json.load(f)
+
+        # with hyperparameter_config_path.open() as f:
+        #     hyperparameter_config = json.load(f)
 
         checkpoint_path = config_path / model_config["checkpoint"]
         color_map_path = config_path / model_config["class_to_color_map"]
@@ -60,17 +64,20 @@ class SegmentationTask(celery.Task):
             show_confidence_in_segmentation=False
         )
 
+        # self.segmenter.set_hyperparams(hyperparameter_config)
+
     @torch.no_grad()
     def predict(self, image):
         assembled_prediction = self.segmenter.segment_image(image)
         predicted_classes = torch.argmax(assembled_prediction, dim=0)
-        rgb_segmentation = torch.zeros((predicted_classes.shape[0], predicted_classes.shape[1], 3), device=self.device)
+        rgb_segmentation = torch.zeros((predicted_classes.shape[0], predicted_classes.shape[1], 3),
+                                       dtype=torch.uint8, device=self.device)
 
         # Ugly but that's how we do it elsewhere as well
         for id, name in enumerate(self.class_to_color_map):
             colorstring = self.class_to_color_map[name]
             color = ImageColor.getcolor(colorstring, "RGB")
-            color_tensor = torch.Tensor(color, device=self.device)
+            color_tensor = torch.tensor(color, dtype=torch.uint8, device=self.device)
 
             indices = predicted_classes == id
             rgb_segmentation[indices] = color_tensor
@@ -80,7 +87,6 @@ class SegmentationTask(celery.Task):
         return Image.fromarray(segmentation_image)
 
 
-torch.multiprocessing.set_start_method('spawn')  # good solution !!!!
 broker_address = os.environ.get('BROKER_ADDRESS', 'localhost')
 app = Celery('wpi_demo', backend='rpc://', broker=f"pyamqp://guest@{broker_address}//")
 app.conf.update(
