@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Union, Tuple, Iterator, NoReturn, Optional
 
 import torch
+import yaml
 from PIL.Image import Image as ImageClass
 from torchvision import transforms
 from tqdm import tqdm
@@ -23,18 +24,7 @@ class AnalysisSegmenter:
                  original_config_path: Optional[Path] = None, max_image_size: int = None, print_progress: bool = True,
                  patch_overlap: int = 0, patch_overlap_factor: float = 0.0,
                  show_confidence_in_segmentation: bool = False):
-        if original_config_path is None:
-            try:
-                self.config = load_config(model_checkpoint, None)
-            except FileNotFoundError as err:
-                raise FileNotFoundError(
-                    'When trying to load a model form a checkpoint assert that the original configs are in ../config. '
-                    'Otherwise use the corresponding flag to pass the original config directly.'
-                ) from err
-        else:
-            with original_config_path.open() as oc_f:
-                self.config = json.load(oc_f)
-
+        self.config = self.load_original_config(model_checkpoint, original_config_path)
         self.config['fine_tune'] = model_checkpoint
         self.class_to_color_map = self.load_color_map(class_to_color_map)
         self.device = device
@@ -45,6 +35,26 @@ class AnalysisSegmenter:
         self.network = self.load_network()
 
         self.set_patch_overlap(patch_overlap, patch_overlap_factor)
+
+    @staticmethod
+    def load_original_config(model_checkpoint: str, original_config_path: Optional[Path]) -> dict:
+        if original_config_path is None:
+            try:
+                config = load_config(model_checkpoint, None)
+            except FileNotFoundError as err:
+                raise FileNotFoundError(
+                    'When trying to load a model form a checkpoint assert that the original configs are in ../config. '
+                    'Otherwise use the corresponding flag to pass the original config directly.'
+                ) from err
+        else:
+            with original_config_path.open() as oc_f:
+                if original_config_path.suffix == '.json':
+                    config = json.load(oc_f)
+                elif original_config_path.suffix == '.yaml':
+                    config = yaml.safe_load(oc_f)
+                else:
+                    raise NotImplementedError
+        return config
 
     def set_patch_overlap(self, patch_overlap: int, patch_overlap_factor: float) -> NoReturn:
         assert patch_overlap == 0 or patch_overlap_factor == 0.0, "Only one of 'patch_overlap' and " \
