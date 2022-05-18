@@ -1,7 +1,6 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Union
 
 import yaml
 

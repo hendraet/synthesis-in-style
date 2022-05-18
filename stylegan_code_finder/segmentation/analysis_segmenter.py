@@ -1,16 +1,12 @@
 import json
 import math
 from pathlib import Path
-from typing import List, Union, Tuple, Iterator, NoReturn
+from typing import List, Union, Tuple, Iterator, NoReturn, Optional
 
 import torch
 from PIL.Image import Image as ImageClass
-from pathlib import Path
-
-from torch.nn.functional import one_hot
 from torchvision import transforms
 from tqdm import tqdm
-from typing import List, Union, Tuple, Iterator, NoReturn
 
 from networks.base_segmenter import BaseSegmenter
 from training_builder.train_builder_selection import get_train_builder_class
@@ -24,9 +20,21 @@ Color = Tuple[int, int, int]
 class AnalysisSegmenter:
 
     def __init__(self, model_checkpoint: str, device: str, class_to_color_map: Union[str, Path],
-                 max_image_size: int = None, print_progress: bool = True, patch_overlap: int = 0,
-                 patch_overlap_factor: float = 0.0, show_confidence_in_segmentation: bool = False):
-        self.config = load_config(model_checkpoint, None)
+                 original_config_path: Optional[Path] = None, max_image_size: int = None, print_progress: bool = True,
+                 patch_overlap: int = 0, patch_overlap_factor: float = 0.0,
+                 show_confidence_in_segmentation: bool = False):
+        if original_config_path is None:
+            try:
+                self.config = load_config(model_checkpoint, None)
+            except FileNotFoundError as err:
+                raise FileNotFoundError(
+                    'When trying to load a model form a checkpoint assert that the original configs are in ../config. '
+                    'Otherwise use the corresponding flag to pass the original config directly.'
+                ) from err
+        else:
+            with original_config_path.open() as oc_f:
+                self.config = json.load(oc_f)
+
         self.config['fine_tune'] = model_checkpoint
         self.class_to_color_map = self.load_color_map(class_to_color_map)
         self.device = device

@@ -10,6 +10,8 @@ import pytorch_fid.fid_score
 import pytorch_fid.inception
 import torch
 import torch.distributed
+from pytorch_training.data.utils import cache_or_load_file
+from pytorch_training.distributed import get_world_size, get_rank
 from torch.nn.functional import adaptive_avg_pool2d
 from torch.utils.data import DataLoader
 from tqdm.contrib import tenumerate
@@ -17,9 +19,6 @@ from tqdm.contrib import tenumerate
 from networks import StyleganAutoencoder
 from networks.stylegan1.model import Generator as StyleGAN1Generator
 from networks.stylegan2.model import Generator as StyleGAN2Generator
-from pytorch_training.data.utils import cache_or_load_file
-from pytorch_training.distributed import get_world_size, get_rank
-
 from utils.dataset_creation import build_latent_and_noise_generator
 
 
