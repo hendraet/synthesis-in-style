@@ -57,9 +57,10 @@ def parse_and_check_arguments():
     file_group.add_argument("-f", "--config-file", default="config.json", type=Path,
                             help="Path to the JSON file that contains the segmenter configuration")
     file_group.add_argument("-of", "--original-config-path", type=Path, default=None,
-                            help="Path to the JSON file that contains the config for the original segmenter training "
-                                 "Has to be provided if model was not trained and the original logging structure is "
-                                 "not present, i.e. the config does not lie in a sibling directory of the checkpoint.")
+                            help="Path to the YAML/JSON file that contains the config for the original segmenter "
+                                 "training Has to be provided if model was not trained and the original logging "
+                                 "structure is not present, i.e. the config does not lie in a sibling directory of the "
+                                 "checkpoint.")
     file_group.add_argument("-gt", "--ground-truth-dir", type=Path,
                             help="The Path to the directory in which the ground-truth images for segmentation are "
                                  "stored. This argument is required when trying to calculate the dice score using "
