@@ -72,7 +72,7 @@ def get_activations(args: argparse.Namespace, autoencoder: Union[StyleganAutoenc
         batch = next(data_loader)
 
         if not isinstance(batch, Latents):
-            batch = {k: v.to(args.device) for k,v in batch.items()}
+            batch = {k: v.to(args.device) for k, v in batch.items()}
             latents = autoencoder.encode(batch['input_image'])
         else:
             latents = batch.to(args.device)
@@ -111,7 +111,8 @@ def cluster_id_to_image(cluster_image: torch.Tensor, color_func: Callable) -> to
     return output.view(-1, 3, height, width)
 
 
-def find_and_render_clusters(all_activations: Dict[int, torch.Tensor], num_clusters: int, color_func: Callable = get_next_color) -> Tuple[Dict[int, torch.Tensor], Dict[str, FactorCatalog]]:
+def find_and_render_clusters(all_activations: Dict[int, torch.Tensor], num_clusters: int,
+                             color_func: Callable = get_next_color) -> Tuple[Dict[int, torch.Tensor], Dict[str, FactorCatalog]]:
     rendered_clusters = {}
     catalogs = {}
     id_to_size_map = {}
@@ -159,10 +160,11 @@ def save_cluster_visualizations(cluster_images: Dict[int, torch.Tensor], num_clu
 
     save_image(cluster_images, image_path, nrow=num_samples, normalize=True, range=(0, 255))
 
+
 def main(args: argparse.Namespace):
     output_dir = prepare_output_dir(args)
 
-    config = load_config(args.checkpoint, None)
+    config = load_config(args.checkpoint, args.original_config_path)
     config['batch_size'] = args.batch_size
     autoencoder = load_autoencoder_or_generator(args, config)
 
@@ -177,7 +179,8 @@ def main(args: argparse.Namespace):
         activations = strip_activations(activations, args.strip_activations_from)
 
     for num_clusters in trange(*args.cluster_range):
-        rendered_clusters, catalogs = find_and_render_clusters(activations, num_clusters=num_clusters, color_func=get_next_color)
+        rendered_clusters, catalogs = find_and_render_clusters(activations, num_clusters=num_clusters,
+                                                               color_func=get_next_color)
         save_catalogs(catalogs, num_clusters, output_dir.resolve() / 'catalogs')
 
         rendered_clusters[max(rendered_clusters.keys()) + 1] = torch.from_numpy(generated_images)
@@ -188,8 +191,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Use a trained generator to produce images and their according semantic segmentation map")
     parser.add_argument("checkpoint", help="Path to trained autoencoder")
+    parser.add_argument("-op", "--original-config-path", type=Path, default=None,
+                        help="Path to the YAML/JSON file that contains the config for the original segmenter "
+                             "training Has to be provided if model was not trained and the original logging "
+                             "structure is not present, i.e. the config does not lie in a sibling directory of the "
+                             "checkpoint.")
     parser.add_argument("--device", default='cuda', choices=['cuda', 'cpu'])
-    parser.add_argument("--destination", default='semantic_segmentation', help='where to save results')
+    parser.add_argument("--destination", default='semantic_segmentation',
+                        help='Where to save results. If relative path is given, will be saved relative to in the '
+                             'second parent directory of the checkpoint (corresponds to the root of the original log '
+                             'directory if self trained checkpoint is used).')
     parser.add_argument("-b", "--batch-size", default=10, type=int, help="batch size for generation of images on GPU")
     parser.add_argument("-n", "--num-samples", default=100, type=int,
                         help="number of samples for prediction of clusters")
@@ -197,6 +208,7 @@ if __name__ == "__main__":
                         help="number of clusters to analyze")
     parser.add_argument("-i", "--images",
                         help='path to dir with images that shall be used as base images (only works with autoencoder checkpoint)')
-    parser.add_argument("-s", "--strip-activations-from", type=int, help="throw away all predictions that are smaller or equal to the given size")
+    parser.add_argument("-s", "--strip-activations-from", type=int,
+                        help="throw away all predictions that are smaller or equal to the given size")
 
     main(parser.parse_args())

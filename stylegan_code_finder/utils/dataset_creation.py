@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from typing import Union, Dict, Tuple, Iterable
+from typing import Union, Dict, Tuple, Iterable, Optional
 
 import torch
 
@@ -15,8 +15,12 @@ def get_root_dir_of_checkpoint(checkpoint_file: Union[str, Path]) -> Path:
 
 
 def get_base_dirs(args: argparse.Namespace) -> Tuple[Path, Path]:
-    base_dir = get_root_dir_of_checkpoint(args.checkpoint)
-    semantic_segmentation_base_dir = base_dir / 'semantic_segmentation'
+    if getattr(args, 'semantic_segmentation_base_dir', None) is None:
+        base_dir = get_root_dir_of_checkpoint(args.checkpoint)
+        semantic_segmentation_base_dir = base_dir / 'semantic_segmentation'
+    else:
+        semantic_segmentation_base_dir = args.semantic_segmentation_base_dir
+        base_dir = semantic_segmentation_base_dir.parent
     if args.save_to is None:
         image_save_base_dir = base_dir / "generated_images"
     else:

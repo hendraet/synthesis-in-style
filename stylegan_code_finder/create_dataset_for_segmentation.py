@@ -4,7 +4,7 @@ import json
 import random
 import traceback
 from pathlib import Path
-from typing import Dict, Tuple, List, Union
+from typing import Dict, Tuple, List, Union, Optional
 
 import numpy
 import os
@@ -111,8 +111,8 @@ def save_debug_images(debug_images: Dict[str, List[numpy.ndarray]], iteration: i
         save_image(image, image_id, base_dir, name_format=f"{{id:04d}}_debug.png")
 
 
-def build_dataset(args: argparse.Namespace, creation_config: Dict):
-    config = load_config(args.checkpoint, None)
+def build_dataset(args: argparse.Namespace, creation_config: Dict, original_config_path: Optional[Path] = None):
+    config = load_config(args.checkpoint, original_config_path)
     config['batch_size'] = args.batch_size
     image_save_base_dir, semantic_segmentation_base_dir = get_base_dirs(args)
     autoencoder = load_autoencoder_or_generator(args, config)
@@ -176,7 +176,7 @@ def main(args: argparse.Namespace):
         config = json.load(f)
 
     if not args.only_create_train_val_split:
-        build_dataset(args, config)
+        build_dataset(args, config, original_config_path=args.original_config_path)
 
     if global_config.debug:
         # no need for gt if only creating debug images
@@ -216,6 +216,11 @@ if __name__ == "__main__":
                                                  "labelled intermediate layers specified in a config file.")
     parser.add_argument("checkpoint", help="Path to trained autoencoder/generator for dataset creation")
     parser.add_argument("config", help="path to json file containing config for generation")
+    parser.add_argument("-op", "--original-config-path", type=Path, default=None,
+                        help="Path to the YAML/JSON file that contains the config for the original segmenter "
+                             "training Has to be provided if model was not trained and the original logging "
+                             "structure is not present, i.e. the config does not lie in a sibling directory of the "
+                             "checkpoint.")
     parser.add_argument("-n", "--num-images", type=int, default=100, help="Number of images to generate")
     parser.add_argument("-s", "--save-to",
                         help="path where to save generated images (default is save in dir of run of used checkpoint)")
@@ -233,6 +238,9 @@ if __name__ == "__main__":
                              "segmenters.")
     parser.add_argument("--classifier-path", help="Path to the trained activation classifier. Only used with "
                                                   "DatasetGAN segmenters.")
+    parser.add_argument("-ssd", "--semantic-segmentation-base-dir", type=Path,
+                        help="If a different directory for creating the semantic segmentation was chosen use this flag "
+                             "to provide it")
 
     parsed_args = parser.parse_args()
     global_config.debug = parsed_args.debug

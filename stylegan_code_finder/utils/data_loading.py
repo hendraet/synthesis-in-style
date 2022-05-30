@@ -3,7 +3,7 @@ import functools
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Union, Dict, Iterable, Type, Callable, List
+from typing import Union, Dict, Iterable, Type, Callable, List, Optional
 
 import torch
 from PIL import Image
@@ -121,7 +121,7 @@ def build_dataset_gan_loader(json_path: Union[str, Path], tensor_path: Union[str
 
 
 def get_data_loader(dataset_json_path: Path, dataset_name: str, args: argparse.Namespace, config: dict,
-                    validation: bool = False) -> DataLoader:
+                    validation: bool = False, original_generator_config_path: Optional[Path] = None) -> DataLoader:
     if args.cache_root is not None:
         loader_func = CachingLoader(dataset_json_path.parent, args.cache_root, base_loader=resilient_loader)
     else:
@@ -138,7 +138,7 @@ def get_data_loader(dataset_json_path: Path, dataset_name: str, args: argparse.N
     elif config['dataset'] == 'dataset_gan':
         if config["generate"]:
             args.device = "cuda"
-            generator_config = load_config(config["checkpoint"], None)
+            generator_config = load_config(config["checkpoint"], original_generator_config_path)
             args.checkpoint = config["checkpoint"]
             generator = load_autoencoder_or_generator(args, generator_config)
             generator.eval()

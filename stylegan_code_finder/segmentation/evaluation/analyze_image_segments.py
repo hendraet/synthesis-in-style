@@ -56,7 +56,7 @@ def parse_and_check_arguments():
                             help="Path to a directory that contains the images that should be analyzed")
     file_group.add_argument("-f", "--config-file", default="config.json", type=Path,
                             help="Path to the JSON file that contains the segmenter configuration")
-    file_group.add_argument("-of", "--original-config-path", type=Path, default=None,
+    file_group.add_argument("-op", "--original-config-path", type=Path, default=None,
                             help="Path to the YAML/JSON file that contains the config for the original segmenter "
                                  "training Has to be provided if model was not trained and the original logging "
                                  "structure is not present, i.e. the config does not lie in a sibling directory of the "

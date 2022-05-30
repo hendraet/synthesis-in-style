@@ -59,10 +59,12 @@ def main(args: argparse.Namespace, rank: int, world_size: int):
     sanity_check_config(config)
     config = merge_config_and_args(config, args)
 
-    train_data_loader = get_data_loader(Path(config['train_json']), config['dataset'], args, config)
+    train_data_loader = get_data_loader(Path(config['train_json']), config['dataset'], args, config,
+                                        original_generator_config_path=args.original_generator_config_path)
     if args.validation_json is not None:
         val_data_loader = get_data_loader(Path(config['validation_json']), config['dataset'], args, config,
-                                          validation=True)
+                                          validation=True,
+                                          original_generator_config_path=args.original_generator_config_path)
     else:
         val_data_loader = None
 
@@ -119,6 +121,11 @@ if __name__ == '__main__':
     print('Training script started')
     parser = argparse.ArgumentParser(description='Train a network for semantic segmentation of documents')
     parser.add_argument('config', help='path to config with common train settings, such as LR')
+    parser.add_argument("-op", "--original-generator-config-path", type=Path, default=None,
+                        help="Path to the YAML/JSON file that contains the config for the original segmenter "
+                             "training Has to be provided if model was not trained and the original logging "
+                             "structure is not present, i.e. the config does not lie in a sibling directory of the "
+                             "checkpoint.")
     parser.add_argument('--images', dest='train_json', required=True,
                         help='Path to json file with train images')
     parser.add_argument('--val-images', dest='validation_json',

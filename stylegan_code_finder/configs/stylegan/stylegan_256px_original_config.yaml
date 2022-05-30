@@ -1,0 +1,40 @@
+batch_size: 16
+beta1: 0.5
+beta2: 0.999
+cache_root: null
+channel_multiplier: 2
+config: configs/stylegan_256px.yaml
+device: cuda
+display_size: 16
+downsample_size: 256
+extend_noise_with_random: true
+gamma: 0.5
+image_display_iter: 500
+image_mode: L
+image_save_iter: 1000
+image_size: 256
+init: kaiming
+input_dim: 3
+latent_size: 512
+local_rank: 0
+log_iter: 10
+loss_weights:
+  discriminator: 1
+  reconstruction: 0.1
+lr: 0.001
+lr_policy: step
+lr_to_noise: 0.001
+max_iter: 100000
+mpi_backend: nccl
+n_mlp: 8
+num_workers: 5
+regularization:
+  d_interval: 16
+  g_interval: 4
+  path_reg_weight: 2
+  r1_weight: 10
+snapshot_save_iter: 10000
+step_size: 100000
+style_mixing_prob: 0.9
+stylegan_variant: 2
+weight_decay: 0.0001
