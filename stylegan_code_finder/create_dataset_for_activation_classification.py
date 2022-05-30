@@ -35,7 +35,7 @@ def extract_noise(batch, noise_files):
 def main(args: argparse.Namespace):
     config = load_config(args.checkpoint, args.original_config_path)
     config['batch_size'] = args.batch_size
-    image_save_base_dir, _ = get_base_dirs(args)
+    image_save_base_dir = args.image_save_dir
     autoencoder = load_autoencoder_or_generator(args, config)
 
     data_loader = build_latent_and_noise_generator(autoencoder, config, seed=args.seed)
@@ -113,6 +113,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Creates a dataset based on StyleGAN, which can be used to train a "
                                      "DatasetGAN-like classifier")
     parser.add_argument("checkpoint", help="Path to trained autoencoder/generator for dataset creation")
+    parser.add_argument("image_save_dir", type=Path, help="Where the images should be saved to")
     parser.add_argument("-op", "--original-config-path", type=Path, default=None,
                         help="Path to the YAML/JSON file that contains the config for the original segmenter "
                              "training Has to be provided if model was not trained and the original logging "
@@ -132,9 +133,6 @@ if __name__ == "__main__":
     parser.add_argument("-ge", "--generate-empty-label-images", action='store_true', default=False,
                         help="will create empty label images, but with the correct dimensions and file name")
     parser.add_argument("--seed", type=int, default=1, help="seed that should be used for the dataloader")
-    parser.add_argument("-ssd", "--semantic-segmentation-base-dir", type=Path,
-                        help="If a different directory for creating the semantic segmentation was chosen use this flag "
-                             "to provide it")
 
     parsed_args = parser.parse_args()
     if not (parsed_args.save_activations or parsed_args.save_latents):
