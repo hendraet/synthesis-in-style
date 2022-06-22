@@ -35,8 +35,8 @@ class DocUFCNTrainBuilder(BaseSingleNetworkTrainBuilder):
             iterators={'images': self.train_data_loader},
             networks=self.get_networks_for_updater(),
             optimizers=self.get_optimizers(),
-            device='cuda',
-            class_weights=torch.Tensor(self.config['class_weights']).cuda(),
+            device=self.rank,
+            class_weights=torch.Tensor(self.config['class_weights']).to(self.rank),
             copy_to_device=(self.world_size == 1)
         )
         return updater

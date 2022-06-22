@@ -1,4 +1,5 @@
 import functools
+import logging
 from pathlib import Path
 from typing import Dict, Union
 
@@ -27,16 +28,17 @@ class BaseTrainBuilder:
         self.fine_tune = config['fine_tune']
         self.rank = rank
         self.world_size = world_size
+        self.find_unused_params = False
 
     def _prepare_segmentation_network(self, segmentation_network: BaseSegmenter,
                                       network_name: str = 'segmentation_network') -> BaseSegmenter:
         assert segmentation_network is not None, 'Segmentation network was not properly initialized!'
-        segmentation_network.to('cuda')
+        segmentation_network.to(self.rank)
         if self.fine_tune is not None:
             load_weights(segmentation_network, self.fine_tune, key=network_name)
 
         if self.world_size > 1:
-            distributed = functools.partial(DDP, device_ids=[self.rank], find_unused_parameters=True,
+            distributed = functools.partial(DDP, device_ids=[self.rank], find_unused_parameters=self.find_unused_params,
                                             broadcast_buffers=False, output_device=self.rank)
             segmentation_network = distributed(segmentation_network)
         return segmentation_network

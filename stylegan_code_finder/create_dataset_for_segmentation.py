@@ -24,11 +24,6 @@ from segmentation.evaluation.coco_gt import iter_through_images_in, COCOGtCreato
 from utils.config import load_config
 from utils.dataset_creation import get_base_dirs, build_latent_and_noise_generator, generate_images
 
-if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
-    import pydevd_pycharm
-    pydevd_pycharm.settrace('localhost', port=int(os.environ.get('REMOTE_PYCHARM_DEBUG_PORT')),
-                            stdoutToServer=True, stderrToServer=True, suspend=False)
-
 
 def get_dataset_gan_params(autoencoder: Union[StyleganAutoencoder, TwoStemStyleganAutoencoder], mean_latent,
                            creation_config: dict, image_size: int, latent_size: int) -> dict:

@@ -14,7 +14,7 @@ class StandardUpdater(Updater):
     """
     def __init__(self, *args, class_weights: Tensor, **kwargs):
         super().__init__(*args, **kwargs)
-        self.loss = nn.CrossEntropyLoss(weight=class_weights)
+        self.loss = nn.CrossEntropyLoss(weight=class_weights).to(self.device)
 
     def update_core(self):
         batch = next(self.iterators['images'])
@@ -55,8 +55,15 @@ class EMANetUpdater(Updater):
 
         with torch.no_grad():
             mu = mu.mean(dim=0, keepdim=True)
-            network.emau.mu *= self.em_mom
-            network.emau.mu += mu * (1 - self.em_mom)
+            try:
+                network.emau.mu *= self.em_mom
+                network.emau.mu += mu * (1 - self.em_mom)
+            except AttributeError:
+                # TransUNet was not designed to work with DistributedDataParallel, so we need this hack to make it work.
+                # It is generally not advised to change parameters of a DDP model, because it can mess with gradients.
+                # However, in this gradients are not required anyways, so it doesn't matter.
+                network.module.emau.mu *= self.em_mom
+                network.module.emau.mu += mu * (1 - self.em_mom)
 
         loss = loss.mean()
         self.optimizers['main'].zero_grad()

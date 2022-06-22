@@ -1,10 +1,11 @@
 import argparse
 import datetime
-import multiprocessing
+import logging
 import os
 from pathlib import Path
 
 import torch
+import torch.distributed as dist
 from pytorch_training.distributed import synchronize, get_rank, get_world_size
 from pytorch_training.extensions.logger import WandBLogger
 from pytorch_training.extensions.lr_scheduler import LRScheduler
@@ -18,11 +19,6 @@ from training_builder.train_builder_selection import get_train_builder_class
 from utils.clamped_cosine import ClampedCosineAnnealingLR
 from utils.config import load_yaml_config, merge_config_and_args
 from utils.data_loading import get_data_loader
-
-if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
-    import pydevd_pycharm
-    pydevd_pycharm.settrace('localhost', port=int(os.environ.get('REMOTE_PYCHARM_DEBUG_PORT')),
-                            stdoutToServer=True, stderrToServer=True, suspend=False)
 
 
 def sanity_check_config(config: dict):
@@ -54,10 +50,31 @@ def get_scheduler(config: dict, trainer: Trainer, training_builder: BaseTrainBui
     return LRScheduler(schedulers, trigger=get_trigger((1, 'iteration')))
 
 
-def main(args: argparse.Namespace, rank: int, world_size: int):
+def setup_distributed(mpi_backend: str, rank: int, world_size: int):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+    dist.init_process_group(mpi_backend, rank=rank, world_size=world_size)
+
+
+def cleanup():
+    dist.destroy_process_group()
+
+
+def main(rank: int, args: argparse.Namespace, world_size: int):
+    if world_size == 1 and os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
+        import pydevd_pycharm
+
+        print('Connecting to debugger...', end='')
+        pydevd_pycharm.settrace('localhost', port=int(os.environ.get('REMOTE_PYCHARM_DEBUG_PORT')),
+                                stdoutToServer=True, stderrToServer=True, suspend=False)
+        print('Done')
+
     config = load_yaml_config(args.config)
     sanity_check_config(config)
     config = merge_config_and_args(config, args)
+
+    if world_size > 1:
+        setup_distributed(args.mpi_backend, rank, world_size)
 
     train_data_loader = get_data_loader(Path(config['train_json']), config['dataset'], args, config,
                                         original_generator_config_path=args.original_generator_config_path)
@@ -81,7 +98,7 @@ def main(args: argparse.Namespace, rank: int, world_size: int):
         stop_trigger=get_trigger(stop_trigger)
     )
 
-    print("Initializing wandb... ", end='')
+    logging.info("Initializing wandb... ")
     logger = WandBLogger(
         args.log_dir,
         args,
@@ -94,7 +111,7 @@ def main(args: argparse.Namespace, rank: int, world_size: int):
         run_name=args.log_name,
         disabled=global_config.debug
     )
-    print("done")
+    logging.info("done")
     evaluator = training_builder.get_evaluator(logger)
     if evaluator is not None:
         trainer.extend(evaluator)
@@ -113,12 +130,18 @@ def main(args: argparse.Namespace, rank: int, world_size: int):
     trainer.extend(logger)
 
     synchronize()
-    print('Setup complete. Starting training...')
-    trainer.train()
+    logging.info('Setup complete. Starting training...')
+    try:
+        trainer.train()
+    finally:
+        if world_size > 1:
+            cleanup()
+    logging.info('Training finished')
 
 
 if __name__ == '__main__':
-    print('Training script started')
+    logging.basicConfig(level=logging.INFO)
+    logging.info('Training script started')
     parser = argparse.ArgumentParser(description='Train a network for semantic segmentation of documents')
     parser.add_argument('config', help='path to config with common train settings, such as LR')
     parser.add_argument("-op", "--original-generator-config-path", type=Path, default=None,
@@ -133,7 +156,7 @@ if __name__ == '__main__':
     parser.add_argument('--coco-gt', help='PAth to COCO GT required, if you set validation images')
     parser.add_argument('--fine-tune', help='Path to model to finetune from')
     parser.add_argument('--local_rank', type=int, default=0)
-    parser.add_argument('--mpi-backend', default='gloo', choices=['nccl', 'gloo'],
+    parser.add_argument('--mpi-backend', default='nccl', choices=['nccl', 'gloo'],
                         help='MPI backend to use for interprocess communication')
     parser.add_argument('--class-to-color-map', default='handwriting_colors.json',
                         help='path to json file with class color map')
@@ -152,13 +175,6 @@ if __name__ == '__main__':
                                        datetime.datetime.now().isoformat())
     global_config.debug = parsed_args.debug
 
-    # if parsed_args.validation_json is not None:
-    #     assert parsed_args.coco_gt is not None, 'If you want to validate,you also have to supply a COCO gt file'
-
-    if torch.cuda.device_count() > 1:
-        multiprocessing.set_start_method('forkserver')
-        torch.cuda.set_device(parsed_args.local_rank)
-        torch.distributed.init_process_group(backend=parsed_args.mpi_backend, init_method='env://')
-        synchronize()
-
-    main(parsed_args, get_rank(), get_world_size())
+    world_size = torch.cuda.device_count()
+    logging.info(f"Running on {world_size} GPU(s)")
+    torch.multiprocessing.spawn(main, args=(parsed_args, world_size), nprocs=world_size, join=True)
