@@ -211,15 +211,21 @@ def main(args: argparse.Namespace) -> NoReturn:
     scores_to_calculate = {"dice": args.calculate_dice_score, "iou": args.calculate_iou,
                            "precision": args.calculate_precision, "recall": args.calculate_recall}
 
-    if any(scores_to_calculate.values()):
+    evaluate = any(scores_to_calculate.values())
+
+    if evaluate:
         results = prepare_results(args.handle_existing, output_json_path, model_config, segmenter.config,
                                   class_to_color_map)
+    else:
+        print("No metrics specified, no evaluation will be run")
+
     image_paths = [f for f in args.image_dir.glob("**/*") if is_image(f)]
     assert len(image_paths) > 0, "There are no images in the given directory."
     for hyperparam_config in tqdm(hyperparam_configs, desc="Processing hyperparameter configs", leave=True):
         segmenter.set_hyperparams(hyperparam_config)
 
-        results["runs"].append(defaultdict(dict))
+        if evaluate:
+            results["runs"].append(defaultdict(dict))
 
         global_confusion_matrix = torch.zeros((num_classes, num_classes))
 
@@ -238,22 +244,23 @@ def main(args: argparse.Namespace) -> NoReturn:
             # pixel.
             assembled_prediction = segmenter.segment_image(image)
 
-            try:
-                sample_confusion_matrix = calculate_confusion_matrix(assembled_prediction, image_path, args,
-                                                                     class_to_color_map, num_classes)
+            if evaluate:
+                try:
+                    sample_confusion_matrix = calculate_confusion_matrix(assembled_prediction, image_path, args,
+                                                                         class_to_color_map, num_classes)
 
-                sample_confusion_matrix_list = list(sample_confusion_matrix.reshape(-1).numpy().astype(float))
-                results["runs"][-1][f"confusion_matrices"][image_path.stem] = sample_confusion_matrix_list
+                    sample_confusion_matrix_list = list(sample_confusion_matrix.reshape(-1).numpy().astype(float))
+                    results["runs"][-1][f"confusion_matrices"][image_path.stem] = sample_confusion_matrix_list
 
-                global_confusion_matrix += sample_confusion_matrix
+                    global_confusion_matrix += sample_confusion_matrix
 
-                for metric_name, do_calculation in scores_to_calculate.items():
-                    if do_calculation:
-                        score = calculate_metric(sample_confusion_matrix, class_names, metric_name)
-                        results["runs"][-1][f"detailed_{metric_name}_scores"][image_path.stem] = score
-            except Exception as e:
-                print(f"The confusion matrix calculation produced an error:\n'{e}'\n"
-                      f"The calculation for {image_path} will be skipped.\n")
+                    for metric_name, do_calculation in scores_to_calculate.items():
+                        if do_calculation:
+                            score = calculate_metric(sample_confusion_matrix, class_names, metric_name)
+                            results["runs"][-1][f"detailed_{metric_name}_scores"][image_path.stem] = score
+                except Exception as e:
+                    print(f"The confusion matrix calculation produced an error:\n'{e}'\n"
+                          f"The calculation for {image_path} will be skipped.\n")
 
             if args.visualize_segmentation:
                 image_prefix = f"{image_path.stem}_{get_string_representation_of_config(hyperparam_config)}"
@@ -269,7 +276,7 @@ def main(args: argparse.Namespace) -> NoReturn:
                 average_score = calculate_metric(global_confusion_matrix, class_names, metric_name)
                 results["runs"][-1][f"average_{metric_name}_scores"] = average_score
 
-        if any(scores_to_calculate.values()):
+        if evaluate:
             results["runs"][-1]["hyperparams"] = hyperparam_config
             with open(output_json_path, "w") as out_json:
                 json.dump(results, out_json, indent=4)
