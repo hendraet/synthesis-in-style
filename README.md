@@ -1,5 +1,6 @@
 # Synthesis in Style
 
+![sis_example_high](https://user-images.githubusercontent.com/16731894/177955150-0e233fe0-4bd5-4ad9-88e4-2d1c2462755e.png)
 This repository contains the code for the paper [Synthesis in Style: Semantic Segmentation of Historical Documents using Synthetic Data](https://arxiv.org/abs/2107.06777).
 The trained models and benchmark dataset used for evaluation can be found [here](https://bartzi.de/research/synthesis_in_style).
 
