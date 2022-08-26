@@ -31,8 +31,8 @@ def save_overlayed_segmentation_image(segmented_image: ImageClass, original_imag
     overlayed_image.save(image_save_dir / f"{image_prefix}_overlayed.png")
 
 
-def get_bounding_boxes(prediction: torch.Tensor) -> Dict[int, List[BBox]]:
-    class_contours = find_class_contours(prediction, background_class_id=0)
+def get_bounding_boxes(prediction: torch.Tensor, filter_classes: Tuple = ()) -> Dict[int, List[BBox]]:
+    class_contours = find_class_contours(prediction, background_class_id=0, filter_classes=filter_classes)
 
     bbox_dict = {}
     for class_id, contours in class_contours.items():
@@ -52,11 +52,11 @@ def draw_bounding_boxes(image: ImageClass, bboxes: Tuple[BBox], outline_color: C
 
 
 def draw_segmentation(original_image: ImageClass, assembled_predictions: torch.Tensor, original_segmented_image: Image,
-                      bboxes_for_patches: Union[Tuple[BBox], None] = None) -> Tuple[ImageClass, ImageClass]:
+                      bboxes_for_patches: Union[Tuple[BBox], None] = None, filter_classes: Tuple[int, ...] = ()) -> Tuple[ImageClass, ImageClass]:
     if original_image.size != original_segmented_image.size:
         warnings.warn("Sizes of original_image and original_segmented_image do not match. It could be that there is "
                       "something wrong with the preprocessing of these images.")
-    bbox_dict = get_bounding_boxes(assembled_predictions)
+    bbox_dict = get_bounding_boxes(assembled_predictions, filter_classes=filter_classes)
     bboxes = tuple([bbox for bboxes in list(bbox_dict.values()) for bbox in bboxes])
 
     segmented_image = original_segmented_image.copy()
@@ -80,10 +80,10 @@ def save_bbox_to_image(bbox: BBox, original_image: Union[ImageClass, numpy.ndarr
 
 
 def extract_and_save_bounding_boxes(image: ImageClass, assembled_predictions: torch.Tensor, output_dir: Path,
-                                    image_prefix: str) -> NoReturn:
+                                    image_prefix: str, filter_classes: Tuple[int, ...] = ()) -> NoReturn:
     bbox_dir = output_dir / "bboxes"
     bbox_dir.mkdir(exist_ok=True)
-    bbox_dict = get_bounding_boxes(assembled_predictions)
+    bbox_dict = get_bounding_boxes(assembled_predictions, filter_classes=filter_classes)
     for class_id, bboxes in bbox_dict.items():
         for i, bbox in enumerate(tqdm(bboxes, desc="Cropping bboxes...", leave=False)):
             filename = bbox_dir / f"{image_prefix}_class_{class_id}_bbox_{i}.png"
