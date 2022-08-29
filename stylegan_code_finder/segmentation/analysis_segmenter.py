@@ -14,7 +14,6 @@ from utils.config import load_config
 from utils.segmentation_utils import BBox
 from visualization.utils import network_output_to_color_image
 
-Color = Tuple[int, int, int]
 
 
 class AnalysisSegmenter:

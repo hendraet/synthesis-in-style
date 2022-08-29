@@ -13,9 +13,10 @@ import argparse
 import torch
 
 from PIL.Image import Image as ImageClass
-from segmentation.analysis_segmenter import AnalysisSegmenter, Color
 from utils.image_utils import opencv_image_to_pil, pil_image_to_opencv
 from utils.segmentation_utils import BBox, find_class_contours
+
+Color = Tuple[int, int, int]
 
 
 def save_overlayed_segmentation_image(segmented_image: ImageClass, original_image: ImageClass, class_to_color_map: dict,
@@ -52,7 +53,9 @@ def draw_bounding_boxes(image: ImageClass, bboxes: Tuple[BBox], outline_color: C
 
 
 def draw_segmentation(original_image: ImageClass, assembled_predictions: torch.Tensor, original_segmented_image: Image,
-                      bboxes_for_patches: Union[Tuple[BBox], None] = None, filter_classes: Tuple[int, ...] = ()) -> Tuple[ImageClass, ImageClass]:
+                      bboxes_for_patches: Union[Tuple[BBox], None] = None, filter_classes: Tuple[int, ...] = (),
+                      return_bboxes: bool = False) -> Union[
+    Tuple[ImageClass, ImageClass], Tuple[ImageClass, ImageClass, Dict[int, List[BBox]]]]:
     if original_image.size != original_segmented_image.size:
         warnings.warn("Sizes of original_image and original_segmented_image do not match. It could be that there is "
                       "something wrong with the preprocessing of these images.")
@@ -69,7 +72,10 @@ def draw_segmentation(original_image: ImageClass, assembled_predictions: torch.T
         draw_bounding_boxes(image, bboxes_for_patches, outline_color=(255, 0, 0), stroke_width=1)
         draw_bounding_boxes(segmented_image, bboxes_for_patches, outline_color=(255, 0, 0), stroke_width=1)
 
-    return image, segmented_image
+    if return_bboxes:
+        return image, segmented_image, bbox_dict
+    else:
+        return image, segmented_image
 
 
 def save_bbox_to_image(bbox: BBox, original_image: Union[ImageClass, numpy.ndarray], filename: Path) -> NoReturn:
@@ -128,7 +134,7 @@ def extract_and_save_contours(image: ImageClass, assembled_predictions: torch.Te
 
 
 def visualize_segmentation(assembled_prediction: torch.Tensor, image: ImageClass, original_image: ImageClass,
-                           segmenter: AnalysisSegmenter, args: argparse.Namespace, class_to_color_map: Dict,
+                           segmenter: 'AnalysisSegmenter', args: argparse.Namespace, class_to_color_map: Dict,
                            image_prefix: str) -> NoReturn:
     image_save_dir = args.output_dir / "images"
     image_save_dir.mkdir(exist_ok=True, parents=True)
