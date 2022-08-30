@@ -34,6 +34,14 @@ class BBox(NamedTuple):
     def bottom_right(self) -> Tuple:
         return self.right, self.bottom
 
+    @property
+    def width(self) -> int:
+        return self.right - self.left
+
+    @property
+    def height(self) -> int:
+        return self.bottom - self.top
+
     def as_points(self) -> Tuple:
         # top left, top right, bottom right, bottom left
         return self.top_left(), \

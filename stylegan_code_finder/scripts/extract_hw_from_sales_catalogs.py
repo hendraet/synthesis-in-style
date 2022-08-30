@@ -47,7 +47,6 @@ def get_segmenter(model_config: dict, root_dir: Path = Path('.'), original_confi
 
 def main(args: argparse.Namespace):
     # TODO: also extract meta information such as location and maybe also confidences?
-    #  def. also save used model and hyperparam config
     # TODO: find out if rotated text can/should be extracted (90° vs slight rotations)
     model_config = load_yaml_config(args.model_config_path)
     # segmenter = get_segmenter(model_config, show_confidence=True)
@@ -92,6 +91,7 @@ def main(args: argparse.Namespace):
         image_path = args.txt_path.parent / line
         # image_path = Path('/dataset/sales_cat/00000761/010000006782654_002/010000006782654_002_0030.jpg')  # TODO: remove
         image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_lines.png')  # TODO: remove
+        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_difficult_lines_small.png')  # TODO: remove
         if not image_path.exists():
             logging.warning(f'{image_path} does not exist')
             continue
@@ -106,7 +106,7 @@ def main(args: argparse.Namespace):
 
         assembled_prediction = segmenter.segment_image(image)
 
-        image_prefix = f'{image_path.stem}'
+        image_prefix = f'{image_path.stem}_{model_config["model_name"]}'
         image_save_dir = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/extract_hw')  # TODO: magic string
         image_save_dir.mkdir(exist_ok=True, parents=True)
 
@@ -114,8 +114,6 @@ def main(args: argparse.Namespace):
         segmented_image.save(image_save_dir / f"{image_prefix}_segmented_no_bboxes.png")
 
         ### vis
-        # TODO: look at function and see if contour to bbox needs to be fixed. It seems that sometimes contours from
-        #  different lines are merged although they don't overlap
         image_w_bboxes, segmented_image_w_bboxes, bbox_dict = draw_segmentation(
             original_image,
             assembled_prediction,
@@ -132,7 +130,6 @@ def main(args: argparse.Namespace):
         bbox_dict = {id_to_class_map[k]: v for k, v in bbox_dict.items()}
 
         meta_information = {
-            # TODO: add image size
             'model_name': model_config['model_name'],
             'model_checkpoint': model_config['checkpoint'],
             'hyperparams': hyperparams,

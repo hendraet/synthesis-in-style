@@ -45,7 +45,7 @@ def get_bounding_boxes(prediction: torch.Tensor, filter_classes: Tuple = ()) -> 
     return bbox_dict
 
 
-def draw_bounding_boxes(image: ImageClass, bboxes: Tuple[BBox], outline_color: Color = (0, 255, 0),
+def draw_bounding_boxes(image: ImageClass, bboxes: Union[Tuple[BBox], List[BBox]], outline_color: Color = (0, 255, 0),
                         stroke_width: int = 3) -> NoReturn:
     d = ImageDraw(image)
     for bbox in bboxes:
