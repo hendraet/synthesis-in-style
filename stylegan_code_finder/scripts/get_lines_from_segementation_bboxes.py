@@ -2,7 +2,7 @@ import argparse
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 import numpy
 from PIL import Image
@@ -15,6 +15,51 @@ from segmentation.evaluation.segmentation_visualization import draw_bounding_box
 from utils.segmentation_utils import BBox
 
 
+class LineBBox:
+    # TODO: maybe move to extra file
+    def __init__(self, left: int, top: int, right: int, bottom: int, line_candidates: Optional[List[int]] = None):
+        self.bbox = BBox(left, top, right, bottom)
+        self.line_candidates = line_candidates if line_candidates is not None else []
+
+    def is_ambiguous(self) -> bool:
+        return len(self.line_candidates) > 1
+
+    @property
+    def left(self) -> int:
+        return self.bbox.left
+
+    @property
+    def right(self) -> int:
+        return self.bbox.right
+
+    @property
+    def top(self) -> int:
+        return self.bbox.top
+
+    @property
+    def bottom(self) -> int:
+        return self.bbox.bottom
+
+    @property
+    def width(self) -> int:
+        return self.bbox.width
+
+    @property
+    def height(self) -> int:
+        return self.bbox.height
+
+    def __iter__(self):
+        return iter(self.bbox)
+
+    def __str__(self):
+        return f"LineBBox(({self.left}, {self.top}, {self.right}, {self.bottom}), {self.line_candidates})"
+
+    def __repr__(self):
+        return f"LineBBox({self.left}, {self.top}, {self.right}, {self.bottom}, {self.line_candidates})"
+
+
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('image_path', type=Path, help='Path to image')
@@ -22,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_image_and_bboxes(args: argparse.Namespace) -> (Image.Image, Tuple[BBox, ...]):
+def load_image_and_bboxes(args: argparse.Namespace) -> (Image.Image, Tuple[LineBBox, ...]):
     meta_information_path = args.meta_info_path
     with open(meta_information_path, 'r') as f:
         meta_information = json.load(f)
@@ -31,16 +76,16 @@ def load_image_and_bboxes(args: argparse.Namespace) -> (Image.Image, Tuple[BBox,
         meta_information['image_size']) == segmentation_image.size, 'Image size does not match meta information'
 
     bbox_dict = meta_information['bbox_dict']
-    bboxes = tuple([BBox(*bbox) for bboxes in list(bbox_dict.values()) for bbox in bboxes])
+    bboxes = tuple([LineBBox(*bbox) for bboxes in list(bbox_dict.values()) for bbox in bboxes])
     return segmentation_image, bboxes
 
 
-def preprocess(segmentation_image: Image.Image, bboxes: Tuple[BBox, ...], padding: int = 10) -> (Image.Image, List[BBox]):
+def preprocess(segmentation_image: Image.Image, bboxes: Tuple[LineBBox, ...], padding: int = 10) -> (Image.Image, List[LineBBox]):
     top_left = [max(min(values) - padding, 0) for values in list(zip(*bboxes))[:2]]
     bottom_right = [max(values) + 10 for values in list(zip(*bboxes))[2:]]
     min_image = segmentation_image.crop((top_left[0], top_left[1], bottom_right[0], bottom_right[1]))
-    shifted_bboxes = numpy.asarray(bboxes) - numpy.asarray([*top_left, *top_left])
-    return min_image, tuple((BBox(*bbox) for bbox in shifted_bboxes))
+    shifted_bboxes = numpy.asarray([b.bbox for b in bboxes]) - numpy.asarray([*top_left, *top_left])
+    return min_image, tuple((LineBBox(*bbox) for bbox in shifted_bboxes))
 
 
 def calculate_maxima_locations(image_slice: numpy.ndarray, b: float) -> numpy.ndarray:
@@ -128,14 +173,14 @@ def calculate_medial_seams(image: Image.Image, r: int = 20, b: float = 0.0003) -
     return medial_seams
 
 
-def get_dist_between_bbox_and_seam(bbox: BBox, seam: numpy.ndarray) -> int:
+def get_dist_between_bbox_and_seam(bbox: LineBBox, seam: numpy.ndarray) -> int:
     bbox_x_mid = (bbox.left + bbox.right) // 2
     bbox_y_mid = (bbox.top + bbox.bottom) // 2
     dist = seam[bbox_x_mid, 0] - bbox_y_mid
     return dist
 
 
-def map_bboxes_to_lines(bboxes: List[BBox], medial_seams: numpy.ndarray) -> Tuple[Dict[int, BBox], List[BBox]]:
+def map_bboxes_to_lines(bboxes: Tuple[LineBBox, ...], medial_seams: numpy.ndarray) -> Tuple[Dict[int, LineBBox], List[LineBBox]]:
     seams_y_min = medial_seams[:, :, 0].min(axis=1)
     seams_y_max = medial_seams[:, :, 0].max(axis=1)
     seams_y = numpy.stack((seams_y_min, seams_y_max), axis=1)
@@ -145,27 +190,19 @@ def map_bboxes_to_lines(bboxes: List[BBox], medial_seams: numpy.ndarray) -> Tupl
     line_bbox_map = defaultdict(list)
     non_matched_bboxes = []
     for bbox in bboxes:
-        final_line_id = None
-        seam_candidates = numpy.where(numpy.logical_and(seams_y[:, 1] >= bbox.top, bbox.bottom >= seams_y[:, 0]))[0]
-        for seam_id in seam_candidates:
-            seam = medial_seams[seam_id]
-            seam_part_y = seam[bbox.left:bbox.right, 0]
-            if numpy.logical_and(seam_part_y >= bbox.top, seam_part_y <= bbox.bottom).any():
-                # image.crop(bbox).show()
-                # Calculate distance between bbox and seam so that the bbox is assigned to the closest seam
-                dist = abs(get_dist_between_bbox_and_seam(bbox, seam))
-                if final_line_id is None or dist < final_line_id[1]:
-                    final_line_id = (seam_id, dist)
-
-        if final_line_id is not None:
-            line_bbox_map[final_line_id[0]].append(bbox)
-        else:
+        seam_candidates = numpy.where(numpy.logical_and(seams_y[:, 1] >= bbox.top, bbox.bottom >= seams_y[:, 0]))[0].tolist()
+        bbox.line_candidates = seam_candidates
+        if len(seam_candidates) == 0:
             non_matched_bboxes.append(bbox)
+        else:
+            for seam_id in seam_candidates:
+                line_bbox_map[seam_id].append(bbox)
 
     return line_bbox_map, non_matched_bboxes
 
 
 def integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes):
+    # See if non-matched bboxes can be matched based on context - mainly for small artifacts such as dots on the "i"
     addtional_line_bbox_map = defaultdict(list)
     for non_matched_bbox in non_matched_bboxes:
         # draw_bounding_boxes(image, (non_matched_bbox,), outline_color=(0, 0, 0))  # TODO: remove
@@ -184,11 +221,11 @@ def integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes
         seam_bboxes = line_bbox_map[closest_seam_id]
         # get closest bbox in line
         # TODO: take more than 1 on each side?
-        dists_left = [(seam_bbox, non_matched_bbox.left - seam_bbox[2]) for seam_bbox in seam_bboxes if
-                      seam_bbox.right < non_matched_bbox[0]]
+        dists_left = [(seam_bbox, non_matched_bbox.left - seam_bbox.right) for seam_bbox in seam_bboxes if
+                      seam_bbox.right < non_matched_bbox.left]
         bbox_left = min(dists_left, key=lambda x: x[1], default=(None,))[0]
-        dists_right = [(seam_bbox, seam_bbox[0] - non_matched_bbox.right) for seam_bbox in seam_bboxes if
-                       seam_bbox.left > non_matched_bbox[2]]
+        dists_right = [(seam_bbox, seam_bbox.left - non_matched_bbox.right) for seam_bbox in seam_bboxes if
+                       seam_bbox.left > non_matched_bbox.right]
         bbox_right = min(dists_right, key=lambda x: x[1], default=(None,))[0]
 
         # TODO: remove
@@ -199,9 +236,9 @@ def integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes
 
         if bbox_left is None or bbox_right is None:  # TODO: handle case where only one bbox is present
             continue
-        neighboring_y_range = (min(bbox_left[1], bbox_right[1]), max(bbox_left[3], bbox_right[3]))
+        neighboring_y_range = (min(bbox_left.top, bbox_right.top), max(bbox_left.bottom, bbox_right.bottom))
 
-        bbox_y_mid = (non_matched_bbox[1] + non_matched_bbox[3]) // 2
+        bbox_y_mid = (non_matched_bbox.top + non_matched_bbox.bottom) // 2
         if neighboring_y_range[0] <= bbox_y_mid <= neighboring_y_range[1]:
             addtional_line_bbox_map[closest_seam_id].append(non_matched_bbox)
     return addtional_line_bbox_map
@@ -212,16 +249,19 @@ def do_ranges_overlap(range1, range2) -> bool:
     return range2[1] >= range1[0] and range1[1] >= range2[0]
 
 
-def merge_line_bbox_maps(line_bbox_map, addtional_line_bbox_map):
+def merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map):
     new_line_bbox_map = defaultdict(list)
     for line_id, bboxes in line_bbox_map.items():
         new_line_bbox_map[line_id].extend(bboxes)
-        if line_id in addtional_line_bbox_map:
-            new_line_bbox_map[line_id].extend(addtional_line_bbox_map[line_id])
+        if line_id in additional_line_bbox_map:
+            new_line_bbox_map[line_id].extend(additional_line_bbox_map[line_id])
     return new_line_bbox_map
 
 
-def split_lines(line_bbox_map: Dict[int, List[BBox]]) -> Dict[int, List[List[BBox]]]:
+def split_lines(line_bbox_map: Dict[int, List[LineBBox]]) -> Dict[int, List[List[LineBBox]]]:
+    """
+    Split lines into multiple lines if spaces between bboxes (on the x-axis) are too large
+    """
     partial_line_bbox_map = defaultdict(list)
     for line_id, line_bboxes in line_bbox_map.items():
         # calculate average bbox width in line
@@ -229,9 +269,11 @@ def split_lines(line_bbox_map: Dict[int, List[BBox]]) -> Dict[int, List[List[BBo
         avg_line_bbox_width = numpy.mean([bbox.width for bbox in sorted_line_boxes])
         current_line_part = []
         for i, line_bbox in enumerate(sorted_line_boxes):
-            if i + 1 < len(sorted_line_boxes) and sorted_line_boxes[i + 1].left - line_bbox.right < 2 * avg_line_bbox_width:
+            if i + 1 < len(sorted_line_boxes) and sorted_line_boxes[
+                i + 1].left - line_bbox.right < 2 * avg_line_bbox_width:  # TODO: 2 is kinda a magic number
                 current_line_part.append(line_bbox)
             else:
+                # Space is too wide -> finish line segment and start new one
                 current_line_part.append(line_bbox)
                 partial_line_bbox_map[line_id].append(current_line_part)
                 current_line_part = []
@@ -250,11 +292,23 @@ def main(args: argparse.Namespace):
     ### Visualization
     ####
 
+    # Try to match all bboxes to medial seams
     line_bbox_map, non_matched_bboxes = map_bboxes_to_lines(bboxes, medial_seams)
     # TODO: try to bboxes that just slightly overlap line (e.g. "l" or "g")
-    addtional_line_bbox_map = integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes)
-    new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, addtional_line_bbox_map)
+    additional_line_bbox_map = integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes)
+
+    new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map)
     partial_line_bbox_map = split_lines(new_line_bbox_map)
+    clear_line_bbox_map = defaultdict(list)
+    ambiguous_line_bbox_map = defaultdict(list)
+    for line_id, line_parts in partial_line_bbox_map.items():
+        for part in line_parts:
+            is_ambiguous = any([b.is_ambiguous() for b in part])
+            if is_ambiguous:
+                ambiguous_line_bbox_map[line_id].append(part)
+            else:
+                clear_line_bbox_map[line_id].append(part)
+    # TODO: is there any sorting of bboxes (based on x location)?
 
     # TODO: when saving, maybe split into clean lines (no preprocessing such as splitting or inserting) and postprocess lines
 
@@ -265,12 +319,28 @@ def main(args: argparse.Namespace):
     for medial_seam in medial_seams:
         points = [(x, y) for y, x in medial_seam]
         image_draw.line(points, fill=(0, 0, 255), width=5)
-    for line_id, line_bboxes in addtional_line_bbox_map.items():
-        draw_bounding_boxes(image, [BBox(b[0] - 3, b[1] - 3, b[2] + 3, b[3] + 3) for b in addtional_line_bbox_map[line_id]], outline_color=(153, 0, 204))
-    for i, line_id in enumerate(partial_line_bbox_map.keys()):
+
+    # Only bboxes that were added later
+    for line_id, line_bboxes in additional_line_bbox_map.items():
+        draw_bounding_boxes(image, [BBox(b.left - 3, b.top - 3, b.right + 3, b.bottom + 3) for b in additional_line_bbox_map[line_id]], outline_color=(153, 0, 204))
+
+    # All bboxes color-coded by line
+    # for i, line_id in enumerate(partial_line_bbox_map.keys()):
+    #     for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
+    #         color = (255 if i % 2 == 0 else 0, 255 if part_id % 2 == 0 else 0, 0)
+    #         draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
+
+    # clear boxes
+    for i, line_id in enumerate(clear_line_bbox_map.keys()):
         for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
-            color = (255 if i % 2 == 0 else 0, 255 if part_id % 2 == 0 else 0, 0)
-            draw_bounding_boxes(image, line_part, outline_color=color)
+            color = (0, 255 if part_id % 2 == 0 else 100, 0)
+            draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
+
+    # ambiguous boxes
+    for i, line_id in enumerate(ambiguous_line_bbox_map.keys()):
+        for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
+            color = (255, 0, 0) if part_id % 2 == 0 else (250, 128, 114)
+            draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
     image.show()
     ####
     print()
