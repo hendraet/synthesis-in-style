@@ -97,24 +97,27 @@ def calculate_maxima_locations(image_slice: numpy.ndarray, b: float) -> numpy.nd
     smoothed_spline = csaps(x, projection_profile, smooth=b).spline
     d1 = smoothed_spline.derivative(nu=1)
     d2 = smoothed_spline.derivative(nu=2)
-    extrema = d1.roots()
-    maxima_locations = extrema[d2(extrema) < 0.0]
+    extrema = d1.roots().astype(int)
+    maxima = extrema[d2(extrema) < 0.0]
+    maxima = maxima[numpy.logical_and(maxima > 0, maxima < image_slice.shape[0])]  # remove out of bounds extrema
+    non_zero_maxima = maxima[projection_profile[maxima] > 0]  # make sure that extrema are never in positions where only background is present
 
-    return maxima_locations
+    return non_zero_maxima, smoothed_spline # TODO: remove spline
 
 
 def convert_maxima_to_medial_seams(fully_connected_slice_maxima: List[List[Tuple]],
-                                   slice_widths: List[int]) -> numpy.ndarray:
+                                   slice_widths: List[int], image_height: int) -> numpy.ndarray:
     medial_seams = []
     for maxima_group in fully_connected_slice_maxima:
         medial_seam = []
-        for slice_idx, (maximum, slice_width) in enumerate(zip(maxima_group[:-1], slice_widths)):
-            next_maximum = maxima_group[slice_idx + 1]
+        for i, (maximum, slice_width) in enumerate(zip(maxima_group[:-1], slice_widths)):
+            slice_idx = maximum[1]
+            next_maximum = maxima_group[i + 1]
 
-            half_slice_width = slice_width // 2
+            half_slice_width = round(slice_width / 2)
             x_start = sum(slice_widths[:slice_idx]) + half_slice_width + 1
 
-            next_half_slice_width = slice_widths[slice_idx + 1] // 2
+            next_half_slice_width = round(slice_widths[slice_idx + 1] / 2)
             missing_slice_width = slice_width - half_slice_width
             x_end = x_start + missing_slice_width + next_half_slice_width
 
@@ -122,15 +125,37 @@ def convert_maxima_to_medial_seams(fully_connected_slice_maxima: List[List[Tuple
             medial_seam += list(zip(y_coords[:-1], x_coords[:-1]))
 
         # since we always draw lines from the middle of the slice we need to add padding for the first and last slice
-        first_slice_half = [(medial_seam[0][0], x) for x in range(medial_seam[0][1])]
-        last_slice_half = [(medial_seam[-1][0], x) for x in range(medial_seam[-1][1] + 1, sum(slice_widths))]
-        medial_seam = first_slice_half + medial_seam + last_slice_half
-        medial_seams.append(medial_seam)
+        first_slice_idx = maxima_group[0][1]
+        last_slice_idx = maxima_group[-1][1]
+        first_slice_start = sum(slice_widths[:first_slice_idx])
+        last_slice_end = sum(slice_widths[:last_slice_idx + 1])
+        first_slice_half = [(medial_seam[0][0], x) for x in range(first_slice_start, medial_seam[0][1])]
+        last_slice_half = [(medial_seam[-1][0], x) for x in range(medial_seam[-1][1] + 1, last_slice_end + 1)]
+        adapted_medial_seam = first_slice_half + medial_seam + last_slice_half
+
+        # pad all seams to the same lengths so that they can be correctly used with numpy
+        padding_value = -2 * image_height  # set it to this value so that points are too far away to be accidentally used in distance calculation
+        if first_slice_idx > 0:
+            padding_left = [(padding_value, x) for x in range(first_slice_start)]
+            adapted_medial_seam = padding_left + adapted_medial_seam
+        if last_slice_idx < len(slice_widths) - 1:
+            padding_right = [(padding_value, x) for x in range(last_slice_end, sum(slice_widths))]
+            adapted_medial_seam = adapted_medial_seam + padding_right
+        medial_seams.append(adapted_medial_seam)
+    # TODO: off by one error in seam calc (missing x) => maybe just insert afterwards?
+    assert all(len(m_s) == len(medial_seams[0]) for m_s in medial_seams), 'Medial seams are not of equal length'
 
     return numpy.asarray(medial_seams)
 
 
 def calculate_medial_seams(image: Image.Image, r: int = 20, b: float = 0.0003) -> numpy.ndarray:
+    """
+    Args:
+        image: Image to calculate medial seams for
+        r: number of slices
+        b: Smoothing parameter for csaps
+    """
+    # TODO function is quite long rn
     grayscale_image = image.convert("L")
     image_array = numpy.asarray(grayscale_image)
     sobel_image = ndimage.sobel(image_array)
@@ -138,9 +163,36 @@ def calculate_medial_seams(image: Image.Image, r: int = 20, b: float = 0.0003) -
 
     # Calculate maxima for each slice
     slice_maxima = []
+    splines = []
     for image_slice in tqdm(slices, desc="Calculate seam maxima...", leave=False):
-        maxima_locations = calculate_maxima_locations(image_slice, b)
+        maxima_locations, s = calculate_maxima_locations(image_slice, b)
         slice_maxima.append(maxima_locations)
+        splines.append(s)  # TODO: remove
+
+    # TODO: remove
+    # from PIL import ImageDraw
+    # image_draw = ImageDraw.Draw(image)
+    # slice_widths = [s.shape[1] for s in slices]
+    # for i, (slice, s) in tqdm(enumerate(zip(slice_maxima, splines)), desc="Processing slices"):
+    #     x_start = sum(slice_widths[:i])
+    #     x_end = sum(slice_widths[:i + 1])
+    #     for m in tqdm(slice, desc="Drawing extrema"):
+    #         if m < 0 or m > image.height:
+    #             continue
+    #         points = [(x_start, m), (x_end, m)]
+    #         image_draw.line(points, fill=(0, 100, 255), width=5)
+    #
+    #     points = numpy.asarray([(s(x), x) for x in s.x], dtype=numpy.int32)
+    #     min_p = points[:, 0].min()
+    #     max_p = points[:, 0].max()
+    #     blah = max_p - min_p
+    #     scaled_points = (points * ((1 / blah) * slice_widths[i], 1)).astype(numpy.int32)
+    #     new_min_p = scaled_points[:, 0].min()
+    #     shifted_points = scaled_points + [x_start - new_min_p, 0]
+    #
+    #     points_to_draw = [(x,y) for x, y in shifted_points.tolist()]
+    #     image_draw.line(points_to_draw, fill=(255, 0, 255), width=3)
+    # image.show()
 
     # Match maxima locations across slices to extract seams
     connected_slice_maxima = {}  # maps the end point of a line to the list of points that are part of this line
@@ -165,10 +217,13 @@ def calculate_medial_seams(image: Image.Image, r: int = 20, b: float = 0.0003) -
                     connected_slice_maxima[end_point] = connected_slice_maxima[start_point] + [end_point]
                     connected_slice_maxima.pop(start_point)
 
-    fully_connected_slice_maxima = [v for k, v in connected_slice_maxima.items() if len(v) == r]
+    # fully_connected_slice_maxima = [v for k, v in connected_slice_maxima.items() if len(v) == r]
+    # TODO: rename ,
+    #  2 is magic number
+    fully_connected_slice_maxima = [v for k, v in connected_slice_maxima.items() if len(v) >= 2]
 
     slice_widths = [image_slice.shape[1] for image_slice in slices]
-    medial_seams = convert_maxima_to_medial_seams(fully_connected_slice_maxima, slice_widths)
+    medial_seams = convert_maxima_to_medial_seams(fully_connected_slice_maxima, slice_widths, image.height)
 
     return medial_seams
 
@@ -181,16 +236,17 @@ def get_dist_between_bbox_and_seam(bbox: LineBBox, seam: numpy.ndarray) -> int:
 
 
 def map_bboxes_to_lines(bboxes: Tuple[LineBBox, ...], medial_seams: numpy.ndarray) -> Tuple[Dict[int, LineBBox], List[LineBBox]]:
-    seams_y_min = medial_seams[:, :, 0].min(axis=1)
-    seams_y_max = medial_seams[:, :, 0].max(axis=1)
-    seams_y = numpy.stack((seams_y_min, seams_y_max), axis=1)
 
-    # TODO: see if bboxes can be sorted to multiple seams or if we can detect if they should be split into two
     # Extract bounding boxes that intersect with at least one medial seam
     line_bbox_map = defaultdict(list)
     non_matched_bboxes = []
     for bbox in bboxes:
-        seam_candidates = numpy.where(numpy.logical_and(seams_y[:, 1] >= bbox.top, bbox.bottom >= seams_y[:, 0]))[0].tolist()
+        # "relevant" means that matching x coordinates
+        relevant_seam_fragments_y = medial_seams[:, bbox.left:bbox.right + 1, 0]
+        # checks if any of the y coordinates of the seam fragments is within the bbox
+        # (any/nonzero is just a way to select lines where at least one coordinate is within the bbox)
+        seam_candidates = numpy.logical_and(bbox.top <= relevant_seam_fragments_y, bbox.bottom >= relevant_seam_fragments_y).any(axis=1).nonzero()[0].tolist()
+
         bbox.line_candidates = seam_candidates
         if len(seam_candidates) == 0:
             non_matched_bboxes.append(bbox)
@@ -211,13 +267,6 @@ def integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes
                           enumerate(medial_seams)]
         closest_seam_id = min(dists_to_seams, key=lambda x: x[1])[0]
 
-        # TODO: remove
-        # bbox_y_mid = (non_matched_bbox[1] + non_matched_bbox[3]) // 2  # TODO: maybe move
-        # bbox_x_mid = (non_matched_bbox[0] + non_matched_bbox[2]) // 2
-        # bbox_mid = (bbox_x_mid, bbox_y_mid)
-        # seam_mid = tuple(reversed(medial_seams[closest_seam_id, bbox_x_mid]))
-        # image_draw.line([bbox_mid, seam_mid], fill=(0, 0, 255), width=3)
-
         seam_bboxes = line_bbox_map[closest_seam_id]
         # get closest bbox in line
         # TODO: take more than 1 on each side?
@@ -228,15 +277,14 @@ def integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes
                        seam_bbox.left > non_matched_bbox.right]
         bbox_right = min(dists_right, key=lambda x: x[1], default=(None,))[0]
 
-        # TODO: remove
-        # if bbox_left is not None:
-        #     draw_bounding_boxes(image, (bbox_left,), outline_color=(0, 255, 0))
-        # if bbox_right is not None:
-        #     draw_bounding_boxes(image, (bbox_right,), outline_color=(255, 0, 0))
-
-        if bbox_left is None or bbox_right is None:  # TODO: handle case where only one bbox is present
+        if bbox_left is None and bbox_right is None:
             continue
-        neighboring_y_range = (min(bbox_left.top, bbox_right.top), max(bbox_left.bottom, bbox_right.bottom))
+        elif bbox_left is not None:
+            neighboring_y_range = (bbox_left.top, bbox_left.bottom)
+        elif bbox_right is not None:
+            neighboring_y_range = (bbox_right.top, bbox_right.bottom)
+        else:
+            neighboring_y_range = (min(bbox_left.top, bbox_right.top), max(bbox_left.bottom, bbox_right.bottom))
 
         bbox_y_mid = (non_matched_bbox.top + non_matched_bbox.bottom) // 2
         if neighboring_y_range[0] <= bbox_y_mid <= neighboring_y_range[1]:
@@ -269,8 +317,7 @@ def split_lines(line_bbox_map: Dict[int, List[LineBBox]]) -> Dict[int, List[List
         avg_line_bbox_width = numpy.mean([bbox.width for bbox in sorted_line_boxes])
         current_line_part = []
         for i, line_bbox in enumerate(sorted_line_boxes):
-            if i + 1 < len(sorted_line_boxes) and sorted_line_boxes[
-                i + 1].left - line_bbox.right < 2 * avg_line_bbox_width:  # TODO: 2 is kinda a magic number
+            if i + 1 < len(sorted_line_boxes) and sorted_line_boxes[i + 1].left - line_bbox.right < 2 * avg_line_bbox_width:  # TODO: 2 is kinda a magic number
                 current_line_part.append(line_bbox)
             else:
                 # Space is too wide -> finish line segment and start new one
@@ -280,25 +327,7 @@ def split_lines(line_bbox_map: Dict[int, List[LineBBox]]) -> Dict[int, List[List
     return partial_line_bbox_map
 
 
-def main(args: argparse.Namespace):
-    orig_image, orig_bboxes = load_image_and_bboxes(args)
-
-    ### Preprocess image
-    image, bboxes = preprocess(orig_image, orig_bboxes)
-    r = 6  # TODO: dynamically calculate this, maybe a (roughly) fixed slice width?
-    # TODO: check if this works with double page layouts. If not, try to find a fix
-    medial_seams = calculate_medial_seams(image, r=r)
-
-    ### Visualization
-    ####
-
-    # Try to match all bboxes to medial seams
-    line_bbox_map, non_matched_bboxes = map_bboxes_to_lines(bboxes, medial_seams)
-    # TODO: try to bboxes that just slightly overlap line (e.g. "l" or "g")
-    additional_line_bbox_map = integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes)
-
-    new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map)
-    partial_line_bbox_map = split_lines(new_line_bbox_map)
+def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: Dict[int, List[List[LineBBox]]]) -> Tuple[Dict[int, List[List[LineBBox]]], Dict[int, List[List[LineBBox]]]]:
     clear_line_bbox_map = defaultdict(list)
     ambiguous_line_bbox_map = defaultdict(list)
     for line_id, line_parts in partial_line_bbox_map.items():
@@ -308,6 +337,36 @@ def main(args: argparse.Namespace):
                 ambiguous_line_bbox_map[line_id].append(part)
             else:
                 clear_line_bbox_map[line_id].append(part)
+    return ambiguous_line_bbox_map, clear_line_bbox_map
+
+
+def main(args: argparse.Namespace):
+    orig_image, orig_bboxes = load_image_and_bboxes(args)
+
+    ### Preprocess image
+    image, bboxes = preprocess(orig_image, orig_bboxes)
+    # TODO: dynamically calculate this, maybe a (roughly) fixed slice width?
+    #  r=5: slice_width=534
+    #  r=6: slice_width=445 - seems to work best
+    #  r=7: slice_width=381
+    # r = 6
+    r = 20
+    # TODO: check if this works with double page layouts. If not, try to find a fix
+    medial_seams = calculate_medial_seams(image, r=r)
+
+    ### Visualization
+    ####
+
+    # Try to match all bboxes to medial seams
+    # TODO: use again but maybe adapt
+    line_bbox_map, non_matched_bboxes = map_bboxes_to_lines(bboxes, medial_seams)
+    # TODO: try to bboxes that just slightly overlap line (e.g. "l" or "g")
+    additional_line_bbox_map = integrate_non_matched_bboxes(line_bbox_map, medial_seams, non_matched_bboxes)
+
+    new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map)
+    partial_line_bbox_map = split_lines(new_line_bbox_map)
+
+    ambiguous_line_bbox_map, clear_line_bbox_map = split_lines_into_clear_and_ambiguous(partial_line_bbox_map)
     # TODO: is there any sorting of bboxes (based on x location)?
 
     # TODO: when saving, maybe split into clean lines (no preprocessing such as splitting or inserting) and postprocess lines
@@ -317,8 +376,9 @@ def main(args: argparse.Namespace):
     from PIL import ImageDraw
     image_draw = ImageDraw.Draw(image)
     for medial_seam in medial_seams:
-        points = [(x, y) for y, x in medial_seam]
+        points = [(x, y) for y, x in medial_seam if y > 0]
         image_draw.line(points, fill=(0, 0, 255), width=5)
+        # image_draw.line(points, fill=(255, 0, 0), width=5)
 
     # Only bboxes that were added later
     for line_id, line_bboxes in additional_line_bbox_map.items():
