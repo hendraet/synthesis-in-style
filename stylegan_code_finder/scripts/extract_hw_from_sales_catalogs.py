@@ -122,6 +122,7 @@ def main(args: argparse.Namespace):
             filter_classes=filter_classes,
             return_bboxes=True
         )
+        # TODO: create flags to decide if these should be saved
         image_w_bboxes.save(image_save_dir / f"{image_prefix}_bboxes.png")
         segmented_image_w_bboxes.save(image_save_dir / f"{image_prefix}_segmented.png")
         ###
@@ -129,10 +130,11 @@ def main(args: argparse.Namespace):
         id_to_class_map = {v: k for k, v in class_to_id_map.items()}
         bbox_dict = {id_to_class_map[k]: v for k, v in bbox_dict.items()}
 
+        # TODO: save this information in any case, but maybe replace the bbox dict with the line-wise information
         meta_information = {
             'model_name': model_config['model_name'],
             'model_checkpoint': model_config['checkpoint'],
-            'hyperparams': hyperparams,
+            'model_hyperparams': hyperparams,
             'image_size': image.size,
             'bbox_dict': bbox_dict
         }
