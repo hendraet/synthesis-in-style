@@ -1,9 +1,7 @@
+import argparse
 import json
 import logging
-
 import os
-
-import argparse
 from pathlib import Path
 from typing import Optional
 
@@ -11,9 +9,7 @@ from PIL import Image, UnidentifiedImageError
 from tqdm import tqdm
 
 from segmentation.analysis_segmenter import VotingAssemblySegmenter
-from segmentation.evaluation.analyze_image_segments import preprocess_images
-from segmentation.evaluation.segmentation_visualization import extract_and_save_bounding_boxes, visualize_segmentation, \
-    draw_segmentation
+from segmentation.evaluation.segmentation_visualization import draw_segmentation
 from utils.config import load_yaml_config
 
 if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
@@ -28,16 +24,18 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('txt_path', type=Path, help='Txt file that lists all files and if they contain handwriting')
     parser.add_argument('model_config_path', type=Path, help='JSON containing the model configuration')
+    parser.add_argument('-b', '--batch-size', type=int, default=1, help='Batch size')
     return parser.parse_args()
 
 
 def get_segmenter(model_config: dict, root_dir: Path = Path('.'), original_config_path: Optional[Path] = None,
-                  show_confidence: bool = False) -> VotingAssemblySegmenter:
+                  batch_size: Optional[int] = None, show_confidence: bool = False) -> VotingAssemblySegmenter:
     segmenter = VotingAssemblySegmenter(
         model_config["checkpoint"],
         device="cuda",
         class_to_color_map=root_dir / model_config["class_to_color_map"],
         original_config_path=original_config_path,
+        batch_size=batch_size,
         max_image_size=int(model_config.get("max_image_size", 0)),
         print_progress=True,
         show_confidence_in_segmentation=show_confidence  # TODO: plot conf
@@ -50,10 +48,12 @@ def main(args: argparse.Namespace):
     # TODO: find out if rotated text can/should be extracted (90° vs slight rotations)
     model_config = load_yaml_config(args.model_config_path)
     # segmenter = get_segmenter(model_config, show_confidence=True)
-    segmenter = get_segmenter(model_config, show_confidence=getattr(model_config, "show_confidence", False))
+    segmenter = get_segmenter(model_config, batch_size=args.batch_size,
+                              show_confidence=getattr(model_config, "show_confidence", False))
 
     # High recall settings
     #
+    # TODO maybe increase min contour area
     hyperparameters = {  # TODO: move to config?
         'doc_ufcn': {
             'min_confidence': 0.3,
@@ -89,8 +89,8 @@ def main(args: argparse.Namespace):
 
     for line in tqdm(lines[2:4], desc='Processing images'):  # TODO no limit
         image_path = args.txt_path.parent / line
-        # image_path = Path('/dataset/sales_cat/00000761/010000006782654_002/010000006782654_002_0030.jpg')  # TODO: remove
-        image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_lines.png')  # TODO: remove
+        image_path = Path('/dataset/sales_cat/00000761/010000006782654_002/010000006782654_002_0030.jpg')  # TODO: remove
+        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_lines.png')  # TODO: remove
         # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_difficult_lines_small.png')  # TODO: remove
         if not image_path.exists():
             logging.warning(f'{image_path} does not exist')
