@@ -19,13 +19,14 @@ from visualization.utils import network_output_to_color_image
 class AnalysisSegmenter:
 
     def __init__(self, model_checkpoint: str, device: str, class_to_color_map: Union[str, Path],
-                 original_config_path: Optional[Path] = None, max_image_size: int = None, print_progress: bool = True,
-                 patch_overlap: int = 0, patch_overlap_factor: float = 0.0,
-                 show_confidence_in_segmentation: bool = False):
+                 original_config_path: Optional[Path] = None, batch_size: Optional[int] = None,
+                 max_image_size: int = None, print_progress: bool = True, patch_overlap: int = 0,
+                 patch_overlap_factor: float = 0.0, show_confidence_in_segmentation: bool = False):
         self.config = load_config(model_checkpoint, original_config_path)
         self.config['fine_tune'] = model_checkpoint
         self.class_to_color_map = self.load_color_map(class_to_color_map)
         self.device = device
+        self.batch_size = batch_size if batch_size else self.config.get('batch_size', 1)
         self.patch_size = int(self.config['image_size'])
         self.print_progress = print_progress
         self.max_image_size = max_image_size
@@ -110,32 +111,33 @@ class AnalysisSegmenter:
 
         return tuple(patches)
 
-    def crop_patches(self, input_image: ImageClass) -> Iterator[dict]:
-        bboxes_for_patches = self.calculate_bboxes_for_patches(*input_image.size)
-        for bbox in bboxes_for_patches:
-            yield {
-                 "image": input_image.crop(bbox),
-                 "bbox": bbox
-            }
-
-    def predict_patches(self, patches: Iterator[dict]) -> [dict]:
+    def crop_and_batch_patches(self, input_image: ImageClass) -> Iterator[dict]:
         transform_list = [
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]
         transform_list = transforms.Compose(transform_list)
 
-        predicted_patches = []
-        for patch in self.progress_bar(patches, desc="Predicting patches...", leave=False):
-            image = transform_list(patch["image"])
-            batch = torch.unsqueeze(image, 0).to(self.device)
-            with torch.no_grad():
-                prediction = self.network.predict(batch)
+        bboxes_for_patches = self.calculate_bboxes_for_patches(*input_image.size)
+        for i in range(0, len(bboxes_for_patches), self.batch_size):
+            batch_bboxes = bboxes_for_patches[i:i + self.batch_size] if self.batch_size > 1 else [bboxes_for_patches[i]]
+            batch_images = [input_image.crop(bbox) for bbox in batch_bboxes]
+            batch_images = [transform_list(image) for image in batch_images]
+            batch_images = torch.stack(batch_images, dim=0)
+            batch_images = batch_images.to(self.device)
+            yield {'images': batch_images, 'bboxes': batch_bboxes}
 
-            predicted_patches.append({
-                "prediction": torch.squeeze(torch.detach(prediction), dim=0),
-                "bbox": patch["bbox"]
-            })
+    def predict_patches(self, patches: Iterator[dict]) -> [dict]:
+        predicted_patches = []
+        for batch in self.progress_bar(patches, desc="Predicting patches...", leave=False):
+            with torch.no_grad():
+                prediction = self.network.predict(batch['images'])
+
+            for i, bbox in enumerate(batch['bboxes']):
+                predicted_patches.append({
+                    "prediction": prediction[i],
+                    "bbox": bbox
+                })
 
         return predicted_patches
 
@@ -177,7 +179,7 @@ class AnalysisSegmenter:
         if self.max_image_size > 0 and any(side > self.max_image_size for side in image.size):
             image.thumbnail((self.max_image_size, self.max_image_size))
 
-        patches = self.crop_patches(image)
+        patches = self.crop_and_batch_patches(image)
 
         with torch.no_grad():
             predicted_patches = self.predict_patches(patches)
