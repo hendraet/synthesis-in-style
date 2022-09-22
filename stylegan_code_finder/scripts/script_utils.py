@@ -1,10 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from utils.segmentation_utils import BBox
 
 
 class LineBBox:
-    # TODO: maybe move to extra file
     def __init__(self, left: int, top: int, right: int, bottom: int, line_candidates: Optional[List[int]] = None):
         self.bbox = BBox(left, top, right, bottom)
         self.line_candidates = line_candidates if line_candidates is not None else []
@@ -35,6 +34,9 @@ class LineBBox:
     @property
     def height(self) -> int:
         return self.bbox.height
+
+    def as_points(self) -> Tuple:
+        return self.bbox.as_points()
 
     def __iter__(self):
         return iter(self.bbox)
