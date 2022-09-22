@@ -2,12 +2,15 @@ import argparse
 import json
 import logging
 import os
+import traceback
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from PIL import Image, UnidentifiedImageError
 from tqdm import tqdm
 
+from scripts.get_lines_from_segementation_bboxes import process_image, set_opt_args_for_hw_extraction
 from segmentation.analysis_segmenter import VotingAssemblySegmenter
 from segmentation.evaluation.segmentation_visualization import draw_segmentation
 from utils.config import load_yaml_config
@@ -25,6 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('txt_path', type=Path, help='Txt file that lists all files and if they contain handwriting')
     parser.add_argument('model_config_path', type=Path, help='JSON containing the model configuration')
     parser.add_argument('-b', '--batch-size', type=int, default=1, help='Batch size')
+    set_opt_args_for_hw_extraction(parser)
     return parser.parse_args()
 
 
@@ -46,6 +50,12 @@ def get_segmenter(model_config: dict, root_dir: Path = Path('.'), original_confi
 def main(args: argparse.Namespace):
     # TODO: also extract meta information such as location and maybe also confidences?
     # TODO: find out if rotated text can/should be extracted (90° vs slight rotations)
+    output_root_dir = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/extract_hw_test_run')  # TODO: magic string
+    output_root_dir.mkdir(exist_ok=True, parents=True)
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    error_log_path = output_root_dir / f'error_log_{timestamp}.txt'
+    logging.basicConfig(filename=error_log_path, level=logging.WARNING, format='%(asctime)s:%(levelname)s: %(message)s')
+
     model_config = load_yaml_config(args.model_config_path)
     # segmenter = get_segmenter(model_config, show_confidence=True)
     segmenter = get_segmenter(model_config, batch_size=args.batch_size,
@@ -87,10 +97,11 @@ def main(args: argparse.Namespace):
     with args.txt_path.open() as f:
         lines = [line.strip() for line in f]
 
-    for line in tqdm(lines[2:4], desc='Processing images'):  # TODO no limit
+    for line in tqdm(lines[12:15], desc='Processing images'):  # TODO no limit
         image_path = args.txt_path.parent / line
-        image_path = Path('/dataset/sales_cat/00000761/010000006782654_002/010000006782654_002_0030.jpg')  # TODO: remove
+        # image_path = Path('/dataset/sales_cat/00000761/010000006782654_002/010000006782654_002_0030.jpg')  # TODO: remove
         # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_lines.png')  # TODO: remove
+        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/010000006782654_002_0030_rotated.png')  # TODO: remove
         # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_difficult_lines_small.png')  # TODO: remove
         if not image_path.exists():
             logging.warning(f'{image_path} does not exist')
@@ -99,7 +110,7 @@ def main(args: argparse.Namespace):
         try:
             original_image = Image.open(image_path)
         except UnidentifiedImageError:
-            print(f"File {image_path} is not an image.")
+            logging.error(f"File {image_path} is not an image.")
             continue
         # image = preprocess_images(original_image, args)  # TODO: maybe also resize
         image = original_image.convert('L')
@@ -107,11 +118,12 @@ def main(args: argparse.Namespace):
         assembled_prediction = segmenter.segment_image(image)
 
         image_prefix = f'{image_path.stem}_{model_config["model_name"]}'
-        image_save_dir = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/extract_hw')  # TODO: magic string
-        image_save_dir.mkdir(exist_ok=True, parents=True)
 
         segmented_image = segmenter.prediction_to_color_image(assembled_prediction)
-        segmented_image.save(image_save_dir / f"{image_prefix}_segmented_no_bboxes.png")
+
+        output_dir = output_root_dir / Path(line).parent
+        output_dir.mkdir(parents=True, exist_ok=True)
+        segmented_image.save(output_dir / f"{image_prefix}_segmented_no_bboxes.png")
 
         ### vis
         image_w_bboxes, segmented_image_w_bboxes, bbox_dict = draw_segmentation(
@@ -123,14 +135,13 @@ def main(args: argparse.Namespace):
             return_bboxes=True
         )
         # TODO: create flags to decide if these should be saved
-        image_w_bboxes.save(image_save_dir / f"{image_prefix}_bboxes.png")
-        segmented_image_w_bboxes.save(image_save_dir / f"{image_prefix}_segmented.png")
+        image_w_bboxes.save(output_dir / f"{image_prefix}_bboxes.png")
+        segmented_image_w_bboxes.save(output_dir / f"{image_prefix}_segmented.png")
         ###
 
         id_to_class_map = {v: k for k, v in class_to_id_map.items()}
         bbox_dict = {id_to_class_map[k]: v for k, v in bbox_dict.items()}
 
-        # TODO: save this information in any case, but maybe replace the bbox dict with the line-wise information
         meta_information = {
             'model_name': model_config['model_name'],
             'model_checkpoint': model_config['checkpoint'],
@@ -138,10 +149,26 @@ def main(args: argparse.Namespace):
             'image_size': image.size,
             'bbox_dict': bbox_dict
         }
-        with (image_save_dir / f"{image_prefix}_meta.json").open('w') as f:
+        with (output_dir / f"{image_prefix}_meta_raw.json").open('w') as f:
             json.dump(meta_information, f)
 
-        break # TODO: remove
+        try:
+            process_image(
+                bbox_dict=bbox_dict,
+                segmented_image=segmented_image,
+                original_image=original_image,
+                slice_width=args.slice_width,
+                original_image_name=Path(Path(line).name),
+                out_dir=output_dir,
+                save_ambiguous_lines=args.save_ambiguous_lines,
+                min_num_bboxes=args.min_num_bboxes,
+                min_aspect_ratio=args.min_aspect_ratio,
+                min_line_area=args.min_line_area,
+                debug=args.debug
+            )
+        except Exception as e:
+            logging.error(f'{image_path}: {traceback.format_exc()}')
+        break
 
 
 if __name__ == '__main__':

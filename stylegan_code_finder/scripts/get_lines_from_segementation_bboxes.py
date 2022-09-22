@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Tuple, Dict
@@ -22,12 +23,7 @@ ProtoLine = List[Line]
 LineMap = Dict[int, ProtoLine]
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('image_path', type=Path, help='Path to original image')
-    parser.add_argument('segmented_image_path', type=Path, help='Path to segmented image')
-    parser.add_argument('meta_info_path', type=Path, help='Path to meta info JSON')
-    parser.add_argument('out_dir', type=Path, help='Path to root dir where resulting file should be saved')
+def set_opt_args_for_hw_extraction(parser):
     parser.add_argument('--slice-width', type=int, default=256,
                         help='Approximate width of slices, which will be used to calculate the number of slices used '
                              'for seam carving')
@@ -39,25 +35,40 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--min-aspect-ratio', type=float, default=2., help='Minimum aspect ratio of a line')
     parser.add_argument('--min-line-area', type=int, default=10000, help='Minimum area of a line')
     parser.add_argument('--debug', action='store_true', default=False)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('image_path', type=Path, help='Path to original image')
+    parser.add_argument('segmented_image_path', type=Path, help='Path to segmented image')
+    parser.add_argument('meta_info_path', type=Path, help='Path to meta info JSON')
+    parser.add_argument('out_dir', type=Path, help='Path to root dir where resulting file should be saved')
+    set_opt_args_for_hw_extraction(parser)
     return parser.parse_args()
 
 
-def load_image_and_bboxes(meta_info_path: Path, image_path: Path, segmented_image_path: Path) -> (
-        Image.Image, Image.Image, Tuple[LineBBox, ...]):
+def load_bbox_dict(meta_info_path: Path) -> Dict:
+    with open(meta_info_path, 'r') as f:
+        meta_information = json.load(f)
+    return meta_information['bbox_dict']
+
+
+def load_images(meta_info_path: Path, image_path: Path, segmented_image_path: Path) -> (Image.Image, Image.Image):
     with open(meta_info_path, 'r') as f:
         meta_information = json.load(f)
     segmentation_image = Image.open(segmented_image_path)
     original_image = Image.open(image_path)
     assert tuple(meta_information['image_size']) == segmentation_image.size, 'Image size does not match meta information'
 
-    bbox_dict = meta_information['bbox_dict']
-    bboxes = tuple([LineBBox(*bbox) for bboxes in list(bbox_dict.values()) for bbox in bboxes])
-    return original_image, segmentation_image, bboxes
+    return original_image, segmentation_image
+
+
+def get_bboxes_from_dict(bbox_dict):
+    return tuple([LineBBox(*bbox) for bboxes in list(bbox_dict.values()) for bbox in bboxes])
 
 
 def preprocess(segmentation_image: Image.Image, bboxes: Tuple[LineBBox, ...], padding: int = 10) -> (Image.Image, Line, List[int]):
-    # Reduce segmentation image to area where bboxes are present. This could significantly speed up seam carving
-    # TODO: do a test run with a near empty image to see if this is actually faster
+    # Reduce segmentation image to area where bboxes are present. Slight performance speed up
     top_left = [max(min(values) - padding, 0) for values in list(zip(*bboxes))[:2]]
     bottom_right = [max(values) + 10 for values in list(zip(*bboxes))[2:]]
     min_segmentation_image = segmentation_image.crop((top_left[0], top_left[1], bottom_right[0], bottom_right[1]))
@@ -314,7 +325,6 @@ def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap) -> Tupl
     additional_clear_line = postprocess_ambigouos_lines(ambiguous_line_bbox_map)
     for line_id, line_parts in additional_clear_line.items():
         for line_part in line_parts:
-            # TODO: maybe remove from ambiguous in any way
             clear_line_bbox_map[line_id].extend(line_part)
 
     return ambiguous_line_bbox_map, clear_line_bbox_map
@@ -375,33 +385,37 @@ def visualize_bboxes(image, medial_seams, clear_line_bbox_map, additional_line_b
         for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
             color = (255, 0, 0) if part_id % 2 == 0 else (250, 128, 114)
             draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
-    # image.show()  # TODO: re-comment
+    image.show()
+    # TODO: maybe save debug image
 
 
 def extract_lines_from_image(orig_bboxes: Tuple[LineBBox, ...], orig_segmented_image: Image.Image,
-                             orig_image: Image.Image, slice_width: int = 256, b: float = 0.0003,
-                             min_num_maxima_in_seam: int = 2, debug: bool = False) -> dict:
+                             slice_width: int = 256, b: float = 0.0003, min_num_maxima_in_seam: int = 2,
+                             debug: bool = False) -> dict:
     ### Preprocess image
     segmented_image, bbox, bbox_shift = preprocess(orig_segmented_image, orig_bboxes)
     r = segmented_image.width // slice_width
-    print(f'Slice width for r={r}: {segmented_image.width // r}')
+    logging.info(f'Slice width for r={r}: {segmented_image.width // r}')
 
     medial_seams = calculate_medial_seams(segmented_image, r=r, b=b, min_num_maxima_in_seam=min_num_maxima_in_seam)
+    if len(medial_seams) > 0:
+        # Try to match all bboxes to medial seams
+        line_bbox_map, unmatched_bboxes = map_bboxes_to_lines(bbox, medial_seams)
+        additional_line_bbox_map, still_unmatched_bboxes = integrate_non_matched_bboxes(line_bbox_map, medial_seams,
+                                                                                        unmatched_bboxes)
+        new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map)
+        partial_line_bbox_map = split_lines(new_line_bbox_map)
+        ambiguous_line_bbox_map, clear_line_bbox_map = split_lines_into_clear_and_ambiguous(partial_line_bbox_map)
 
-    # Try to match all bboxes to medial seams
-    line_bbox_map, unmatched_bboxes = map_bboxes_to_lines(bbox, medial_seams)
-    additional_line_bbox_map, still_unmatched_bboxes = integrate_non_matched_bboxes(line_bbox_map, medial_seams,
-                                                                                    unmatched_bboxes)
-    new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map)
-    partial_line_bbox_map = split_lines(new_line_bbox_map)
-    ambiguous_line_bbox_map, clear_line_bbox_map = split_lines_into_clear_and_ambiguous(partial_line_bbox_map)
+        if debug:
+            visualize_bboxes(segmented_image, medial_seams, clear_line_bbox_map, additional_line_bbox_map,
+                             ambiguous_line_bbox_map, partial_line_bbox_map)
 
-    if debug:
-        visualize_bboxes(segmented_image, medial_seams, clear_line_bbox_map, additional_line_bbox_map,
-                         ambiguous_line_bbox_map, partial_line_bbox_map)
+        # TODO: postprocess ambig. lines - maybe use original seam carving code for this one
+        final_bboxes = format_line_bboxes(ambiguous_line_bbox_map, clear_line_bbox_map, bbox_shift)
+    else:
+        final_bboxes = []
 
-    # TODO: postprocess ambig. lines - maybe use original seam carving code for this one
-    final_bboxes = format_line_bboxes(ambiguous_line_bbox_map, clear_line_bbox_map, bbox_shift)
     results = {
         'seam_carving_hyperparams': {
             'slice_width': slice_width,
@@ -436,7 +450,7 @@ def rad_to_degree(rad: float) -> float:
     return rad * 180 / numpy.pi
 
 
-def get_line_rotation(line_coords: tuple[tuple[int, int], tuple[int, int]]) -> float:
+def get_line_rotation(line_coords: Tuple[Tuple[int, int], Tuple[int, int]]) -> float:
     x_len = line_coords[1][0] - line_coords[0][0]
     y_len = line_coords[1][1] - line_coords[0][1]
     rad_angle = -numpy.arctan2(y_len, x_len)
@@ -450,14 +464,13 @@ def rotate_polygon(points: numpy.ndarray, anchor_point: numpy.ndarray, angle: fl
 
 
 def crop_min_bbox_from_image(min_bbox, image):
-    # TODO: could rethink if operating on plain tuples here is best
     box_line_points = tuple(min_bbox[:2].tolist())
     rad_rotation = get_line_rotation(box_line_points)
 
     crop_bbox = (min_bbox[:, 0].min(), min_bbox[:, 1].min(), min_bbox[:, 0].max(), min_bbox[:, 1].max())
     mid_point = numpy.mean(min_bbox, axis=0, dtype=numpy.int32)
-    rot = rotate_polygon(numpy.array(min_bbox), numpy.array(mid_point), rad_rotation)
-    rotated_min_bbox = BBox(rot[0][0], rot[0][1], rot[2][0], rot[2][1])  # TODO: could also average the other points
+    rot = rotate_polygon(numpy.array(min_bbox), numpy.array(mid_point), rad_rotation)  # TODO: does not seems to work correctly for larger tilts
+    rotated_min_bbox = BBox(rot[0][0], rot[0][1], rot[2][0], rot[2][1])  # TODO: could also average the other points or maybe add an assertion that rotation is not too high
     shifted_min_bbox = BBox(rotated_min_bbox.left - crop_bbox[0], rotated_min_bbox.top - crop_bbox[1],
                             rotated_min_bbox.right - crop_bbox[0], rotated_min_bbox.bottom - crop_bbox[1])
 
@@ -471,17 +484,20 @@ def crop_min_bbox_from_image(min_bbox, image):
 def crop_and_save_lines(image: Image.Image, line_bboxes: dict, original_image_path, out_dir: Path,
                         save_ambiguous_lines: bool = False, min_num_bboxes: int = 2, min_aspect_ratio: float = 2.,
                         min_line_area: int = 10000):
-    out_dir.mkdir(parents=True, exist_ok=True)
+    images_saved = 0
     for line_infos in line_bboxes:
         if not save_ambiguous_lines and line_infos['is_ambiguous']:
             continue
 
         # Filter noise, such as lines consisting of only one bboxes, small bboxes, or malformed lines (lines that have
         # a small aspect ratio are unlikely to consist of multiple words)
-        if len(line_infos['bboxes']) < min_num_bboxes:
-            continue
         new_bbox = get_mutual_bbox(line_infos['bboxes']).bbox
-        if new_bbox.width / new_bbox.height < min_aspect_ratio or new_bbox.width * new_bbox.height < min_line_area:
+        if (
+                len(line_infos['bboxes']) < min_num_bboxes or
+                new_bbox.width / new_bbox.height < min_aspect_ratio or
+                new_bbox.width * new_bbox.height < min_line_area
+        ):
+            line_infos['filtered_out'] = True
             continue
 
         min_bbox = get_min_bbox(line_infos)
@@ -491,38 +507,53 @@ def crop_and_save_lines(image: Image.Image, line_bboxes: dict, original_image_pa
         out_path = out_dir / filename
         line_image.save(out_path)
 
+        line_infos['filtered_out'] = False
+        images_saved += 1
 
-def process_image(bboxes: Tuple[LineBBox, ...], segmented_image: Image.Image, original_image: Image.Image,
-                  slice_width: int, original_image_path: Path, out_dir: Path, save_ambiguous_lines: bool = False,
+    if images_saved == 0:
+        logging.warning(f'{original_image_path}: No lines were saved for image since all line candidates were '
+                        f'filtered out.')
+
+
+def process_image(bbox_dict: dict, segmented_image: Image.Image, original_image: Image.Image,
+                  slice_width: int, original_image_name: Path, out_dir: Path, save_ambiguous_lines: bool = False,
                   min_num_bboxes: int = 2, min_aspect_ratio: float = 2., min_line_area: int = 10000,
                   debug: bool = False):
-    results = extract_lines_from_image(bboxes, segmented_image, original_image, slice_width=slice_width,
+    out_dir.mkdir(parents=True, exist_ok=True)
+    bboxes = get_bboxes_from_dict(bbox_dict)
+    results = extract_lines_from_image(bboxes, segmented_image, slice_width=slice_width,
                                        debug=debug)
 
-    results['line_hyperparams'] = {
-        'min_num_bboxes': min_num_bboxes,
-        'min_aspect_ratio': min_aspect_ratio,
-        'min_line_area': min_line_area
-    }
-    out_path = out_dir / original_image_path.with_suffix('.json')
+    if len(results['lines']) > 0:
+        results['line_hyperparams'] = {
+            'min_num_bboxes': min_num_bboxes,
+            'min_aspect_ratio': min_aspect_ratio,
+            'min_line_area': min_line_area
+        }
+
+        crop_and_save_lines(original_image, results['lines'], original_image_name, out_dir,
+                            save_ambiguous_lines=save_ambiguous_lines, min_num_bboxes=min_num_bboxes,
+                            min_aspect_ratio=min_aspect_ratio, min_line_area=min_line_area)
+    else:
+        logging.warning(f'{original_image_name}: No medial seams found, so no bboxes will be extracted.')
+
+    out_path = out_dir / original_image_name.with_suffix('.json')
     with open(out_path, 'w') as f:
         json.dump(results, f, indent=2)
-    crop_and_save_lines(original_image, results['lines'], original_image_path, out_dir,
-                        save_ambiguous_lines=save_ambiguous_lines, min_num_bboxes=min_num_bboxes,
-                        min_aspect_ratio=min_aspect_ratio, min_line_area=min_line_area)
+
     return results
 
 
 def main(args: argparse.Namespace):
     # TODO: test again with tilted lines
-    orig_image, segmented_image, bboxes = load_image_and_bboxes(args.meta_info_path, args.image_path,
-                                                                args.segmented_image_path)
+    orig_image, segmented_image = load_images(args.meta_info_path, args.image_path, args.segmented_image_path)
+    bbox_dict = load_bbox_dict(args.meta_info_path)
     results_info = process_image(
-        bboxes=bboxes,
+        bbox_dict=bbox_dict,
         segmented_image=segmented_image,
         original_image=orig_image,
         slice_width=args.slice_width,
-        original_image_path=Path(args.image_path.name),
+        original_image_name=Path(args.image_path.name),
         out_dir=args.out_dir,
         save_ambiguous_lines=args.save_ambiguous_lines,
         min_num_bboxes=args.min_num_bboxes,
