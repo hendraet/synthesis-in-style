@@ -331,7 +331,6 @@ def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap) -> Tupl
 
 
 def format_line_bboxes(ambiguous_line_bbox_map: LineMap, clear_line_bbox_map: LineMap, shift: List[int]):
-    # TODO: annotations needed - maybe used annotation class for maps
     merged_line_bbox_map = defaultdict(list)
     for d in (clear_line_bbox_map, ambiguous_line_bbox_map):
         for line_id, v in d.items():
@@ -457,7 +456,7 @@ def get_line_rotation(line_coords: Tuple[Tuple[int, int], Tuple[int, int]]) -> f
     return rad_angle
 
 
-def rotate_polygon(points: numpy.ndarray, anchor_point: numpy.ndarray, angle: float):  # TODO: annotate
+def rotate_polygon(points: numpy.ndarray, anchor_point: numpy.ndarray, angle: float) -> List[Tuple[int, int]]:
     # Adapted from: https://gis.stackexchange.com/a/23627
     rotated_polygons = numpy.dot(points - anchor_point, numpy.array([[numpy.cos(angle), numpy.sin(angle)], [-numpy.sin(angle), numpy.cos(angle)]])) + anchor_point
     return [tuple(point) for point in rotated_polygons.astype(numpy.int32)]
@@ -545,7 +544,6 @@ def process_image(bbox_dict: dict, segmented_image: Image.Image, original_image:
 
 
 def main(args: argparse.Namespace):
-    # TODO: test again with tilted lines
     orig_image, segmented_image = load_images(args.meta_info_path, args.image_path, args.segmented_image_path)
     bbox_dict = load_bbox_dict(args.meta_info_path)
     results_info = process_image(

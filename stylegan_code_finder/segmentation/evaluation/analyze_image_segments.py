@@ -101,7 +101,7 @@ def parse_and_check_arguments():
     visual_output_group.add_argument("--extract-bboxes", action="store_true", default=False,
                                      help="extract bounding boxes of words by analyzing the found contours")
     visual_output_group.add_argument("--draw-patches", action="store_true", default=False,
-                                     help="Show the borders of the patches, into which the image was")
+                                     help="Show the borders of the patches, into which the image was cut")
     visual_output_group.add_argument("--draw-bboxes-on-segmentation", action="store_true", default=False,
                                      help="Draw the determined bounding boxes not only on original image but on the "
                                           "segmented image as well")
@@ -213,7 +213,7 @@ def main(args: argparse.Namespace) -> NoReturn:
 
     if any(scores_to_calculate.values()):
         results = prepare_results(args.handle_existing, output_json_path, model_config, segmenter.config,
-                                  class_to_color_map)
+                                  class_to_color_map)  # TODO: no `-vis` only allowed
     image_paths = [f for f in args.image_dir.glob("**/*") if is_image(f)]
     assert len(image_paths) > 0, "There are no images in the given directory."
     for hyperparam_config in tqdm(hyperparam_configs, desc="Processing hyperparameter configs", leave=True):
@@ -236,7 +236,7 @@ def main(args: argparse.Namespace) -> NoReturn:
             # AnalysisSegmenter will save the highest confidences for each pixel from the different patches. However,
             # the VotingAssemblySegmenter will save the normalized, summed confidences over all the patches for each
             # pixel.
-            assembled_prediction = segmenter.segment_image(image)
+            assembled_prediction = segmenter.segment_image(image)  # TODO: seems like prediciton is coming out the wrong way, i.e. class 1 is background and class 0 is HW
 
             try:
                 sample_confusion_matrix = calculate_confusion_matrix(assembled_prediction, image_path, args,

@@ -18,7 +18,7 @@ def extract_score_name(score_key_filter: str) -> str:
 
 def calculate_mean_iou(scores: dict) -> float:
     background = scores["background"]["score"]
-    printed_text = scores["printed_text"]["score"]
+    printed_text = scores["printed_text"]["score"]  # TODO: hardcoded stuff here
     handwritten_text = scores["handwritten_text"]["score"]
 
     return (background + printed_text + handwritten_text) / 3.0

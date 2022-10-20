@@ -61,31 +61,13 @@ def main(args: argparse.Namespace):
     segmenter = get_segmenter(model_config, batch_size=args.batch_size,
                               show_confidence=getattr(model_config, "show_confidence", False))
 
-    # High recall settings
-    #
-    # TODO maybe increase min contour area
+    # High Precision settings
     hyperparameters = {  # TODO: move to config?
-        'doc_ufcn': {
-            'min_confidence': 0.3,
-            'min_contour_area':	15,
-            'patch_overlap': [0, 0.5],  # TODO: maybe change to 0.0 for faster debugging
-        },
         'trans_u_net': {
             'min_confidence': 0.9,
             'min_contour_area':	15,
             'patch_overlap': [0, 0.5],
         },
-        'ema_net':  {
-            'min_confidence': 0.3,
-            'min_contour_area':	15,
-            # 'patch_overlap': [0, 0.5]  # TODO:
-            'patch_overlap': [0, 0.0]
-        },
-        'doc_ufcn_best': {
-            "patch_overlap": [0, 0.5],
-            "min_confidence": 0.7,
-            "min_contour_area": 55
-        }
     }
 
     hyperparams = hyperparameters[model_config['model_name']]
