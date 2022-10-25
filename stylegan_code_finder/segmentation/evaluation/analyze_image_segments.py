@@ -101,7 +101,11 @@ def parse_and_check_arguments():
     visual_output_group.add_argument("--extract-bboxes", action="store_true", default=False,
                                      help="extract bounding boxes of words by analyzing the found contours")
     visual_output_group.add_argument("--draw-patches", action="store_true", default=False,
+<<<<<<< HEAD
                                      help="Show the borders of the patches, into which the image was")
+=======
+                                     help="Show the borders of the patches, into which the image was cut")
+>>>>>>> cbb98f09d1776716ef9e393def34053798e32ec5
     visual_output_group.add_argument("--draw-bboxes-on-segmentation", action="store_true", default=False,
                                      help="Draw the determined bounding boxes not only on original image but on the "
                                           "segmented image as well")

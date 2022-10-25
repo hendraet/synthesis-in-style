@@ -21,8 +21,7 @@ class EMANetTrainBuilder(BaseSingleNetworkTrainBuilder):
         use_pretrained_resnet = True if self.config['fine_tune'] is None else False
         segmentation_network = EMANet(self.config['num_classes'], self.config['n_layers'],
                                       use_pretrained_resnet=use_pretrained_resnet,
-                                      #pretrained_path=self.config['pretrained_path']) #TODO transfer it to the config file
-                                      pretrained_path="/models/ema_net_models/resnet101-2a57e44d.pth")
+                                      pretrained_path=self.config['pretrained_path'] if use_pretrained_resnet else None)
         self.segmentation_network = segmentation_network
 
     def get_optimizers(self) -> Dict[str, Optimizer]:

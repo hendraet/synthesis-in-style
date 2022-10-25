@@ -1,12 +1,14 @@
 import argparse
 import datetime
+import json
 import logging
 import os
 from pathlib import Path
 
 import torch
 import torch.distributed as dist
-from pytorch_training.distributed import synchronize, get_rank, get_world_size
+import wandb
+from pytorch_training.distributed import synchronize
 from pytorch_training.extensions.logger import WandBLogger
 from pytorch_training.extensions.lr_scheduler import LRScheduler
 from pytorch_training.trainer import DistributedTrainer, Trainer
@@ -28,6 +30,10 @@ def sanity_check_config(config: dict):
     if 'dataset' in config:
         choices = ['wpi', 'dataset_gan']
         assert config['dataset'] in choices, f'The dataset must be one of: {", ".join(choices)}'
+    with open(config['class_to_color_map']) as f:
+        class_to_color_map = json.load(f)
+    assert len(class_to_color_map) == config['num_classes'], f'The number of classes in the class_to_color_map must ' \
+                                                             f'be equal to the num_classes in the config'
 
 
 def get_scheduler(config: dict, trainer: Trainer, training_builder: BaseTrainBuilder) -> LRScheduler:
@@ -64,14 +70,15 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     if world_size == 1 and os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
         import pydevd_pycharm
 
-        print('Connecting to debugger...', end='')
+        logging.info('Connecting to debugger...')
         pydevd_pycharm.settrace('localhost', port=int(os.environ.get('REMOTE_PYCHARM_DEBUG_PORT')),
                                 stdoutToServer=True, stderrToServer=True, suspend=False)
-        print('Done')
+        logging.info('Done')
+    global_config.debug = args.debug
 
     config = load_yaml_config(args.config)
-    sanity_check_config(config)
     config = merge_config_and_args(config, args)
+    sanity_check_config(config)
 
     if world_size > 1:
         setup_distributed(args.mpi_backend, rank, world_size)
@@ -134,6 +141,7 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     try:
         trainer.train()
     finally:
+        wandb.finish()
         if world_size > 1:
             cleanup()
     logging.info('Training finished')
@@ -173,7 +181,6 @@ if __name__ == '__main__':
     parsed_args = parser.parse_args()
     parsed_args.log_dir = os.path.join('logs', parsed_args.log_dir, parsed_args.log_name,
                                        datetime.datetime.now().isoformat())
-    global_config.debug = parsed_args.debug
 
     world_size = torch.cuda.device_count()
     logging.info(f"Running on {world_size} GPU(s)")

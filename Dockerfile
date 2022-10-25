@@ -29,7 +29,7 @@ RUN mkdir -p ${BASE}
 COPY stylegan_code_finder/requirements.txt ${BASE}/requirements.txt
 
 WORKDIR ${BASE}
-RUN pip3 install -r requirements-new.txt  -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip3 install -r requirements.txt  -f https://download.pytorch.org/whl/torch_stable.html
 RUN pip3 uninstall -y pycocotools && pip3 install pycocotools==2.0.0
 
 USER $UNAME
