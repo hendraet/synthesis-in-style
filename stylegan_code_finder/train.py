@@ -184,5 +184,4 @@ if __name__ == '__main__':
 
     world_size = torch.cuda.device_count()
     logging.info(f"Running on {world_size} GPU(s)")
-    torch.multiprocessing.spawn(main, args=(parsed_args, world_size), nprocs=world_size, join=True)  # TODO: clean this
-    # main(0, parsed_args, world_size)
+    torch.multiprocessing.spawn(main, args=(parsed_args, world_size), nprocs=world_size, join=True)
