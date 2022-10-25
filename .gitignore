@@ -1,0 +1,14 @@
+.idea
+.pyc
+__pycache__
+build
+dist
+**/*.pickle
+debug
+.env
+datasets
+docker-compose.yml
+*.md
+.run/
+.config
+.cache

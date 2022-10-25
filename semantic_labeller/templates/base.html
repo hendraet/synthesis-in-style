@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Labeller</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+
+    <style>
+        .image {
+            cursor: crosshair;
+        }
+
+        .original-image {
+            cursor: cell;
+        }
+
+        .outer {
+            display: grid;
+            grid-template: 1fr / 1fr;
+            place-items: center;
+        }
+
+        .outer > * {
+            grid-column: 1 / 1;
+            grid-row: 1 / 1;
+        }
+        .outer .below {
+            z-index: 1;
+        }
+        .outer .top {
+            z-index: 2;
+        }
+
+        .below {
+            min-width: {{ labeller.image_size }}px;
+            min-height: {{ labeller.image_size }}px;
+        }
+
+        .color-holder {
+            width: 100%;
+        }
+
+        .color {
+            min-height: 30px;
+            min-width: 30px;
+            border: 3px solid transparent;
+        }
+
+        .content {
+            margin-top: 256px;
+            padding-bottom: 45px;
+        }
+    </style>
+
+</head>
+<body>
+    <nav class="navbar fixed-top navbar-light bg-light">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">Semantic Class Labeller</span>
+            <span class="navbar-text"><span id="currentImage">0</span>/{{labeller.num_images}}</span>
+            <div class="d-flex">
+                <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#file_name_modal">Save</button>
+            </div>
+        </div>
+    </nav>
+    <div class="content container-fluid position-absolute top-50 start-50 translate-middle">
+        <div class="row row-cols-auto d-flex justify-content-evenly">
+            {% for i in range(sub_images_per_image) %}
+                <div class="col mb-3">
+                    <div class="row">
+                        <div class="outer col">
+                            <div class="top original-image" id="original-image-{{ i }}" data-id="{{ i }}"></div>
+                            <div class="below d-flex justify-content-center load-spinner align-items-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="outer col">
+                            <div class="top image" id="image-{{ i }}" data-id="{{ i }}"></div>
+                            <div class="below d-flex justify-content-center load-spinner align-items-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <nav class="navbar fixed-bottom navbar-light bg-light">
+      <div class="container-fluid d-flex">
+          <div class="container">
+              <div class="row color-holder">
+                  {% for id, color in colors.items() %}
+                    <div class="col color" id="color-{{ id }}" data-color="{{ id }}" style="background-color: {{ color }}">
+                        <span class="visually-hidden">Color!!</span>
+                    </div>
+                  {% endfor %}
+              </div>
+          </div>
+      </div>
+    </nav>
+
+    <div class="modal" id="file_name_modal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Choose File Name for Saving</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form>
+                <div class="mb-3">
+                    <label for="filename" class="col-form-label">Filename:</label>
+                    <input type="text" class="form-control" id="filename" value="{{ labeller.default_result_file_name }}">
+                </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="modal-save-file">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+    <script>
+        function removeChildren(parent) {
+            while (parent.firstChild) {
+                parent.removeChild(parent.firstChild);
+            }
+        }
+
+        function getClickPosition(event) {
+            const screenXPosition = event.clientX;
+            const screenYPosition = event.clientY;
+            const imageBoundingRect = event.currentTarget.firstChild.getBoundingClientRect();
+            return {
+                x: screenXPosition - imageBoundingRect.x,
+                y: screenYPosition - imageBoundingRect.y
+            }
+        }
+
+        class ImageController {
+            constructor(startImage, numImages) {
+                this.numImages = numImages;
+                this.currentImage = startImage;
+                this.image_holders = document.querySelectorAll('.image');
+                this.original_image_holders = document.querySelectorAll('.original-image');
+                this.selectedColor = 0;
+                this.setupKeyboardListener();
+                this.setupColorChooseHandler();
+                this.setUpSaveHandler();
+                for (const imageHolder of this.image_holders) {
+                    this.setUpClickHandlers(imageHolder, false);
+                }
+
+                for (const imageHolder of this.original_image_holders) {
+                    this.setUpClickHandlers(imageHolder, true);
+                }
+            }
+
+            setupKeyboardListener() {
+                document.addEventListener('keydown', (event) => {
+                    const keyName = event.key;
+                    if (keyName === 'ArrowRight') {
+                        this.currentImage++;
+                        if (this.currentImage >= this.numImages) {
+                            this.currentImage = this.currentImage - this.numImages;
+                        }
+                        this.loadAllImages(this.currentImage % this.numImages);
+                    } else if (keyName === 'ArrowLeft') {
+                        this.currentImage--;
+                        if (this.currentImage < 0) {
+                            this.currentImage = this.numImages + this.currentImage;
+                        }
+                        this.loadAllImages(this.currentImage % this.numImages);
+                    }
+                    document.querySelector("#currentImage").textContent = this.currentImage;
+                });
+            }
+
+            loadImage(imageHolder, subImageId, original) {
+                const imageElement = document.createElement('img');
+                const base_url = original ? 'original-image' : 'image';
+                imageElement.src = `/${base_url}/${this.currentImage}/${subImageId}?${new Date().getTime()}`;
+                removeChildren(imageHolder);
+                imageHolder.appendChild(imageElement);
+            }
+
+            loadImages() {
+                for (let image_holder of this.image_holders) {
+                    const imageId = image_holder.dataset.id;
+                    this.loadImage(image_holder, imageId, false);
+                }
+            }
+
+            loadOriginalImages() {
+                for (let image_holder of this.original_image_holders) {
+                    const imageId = image_holder.dataset.id;
+                    this.loadImage(image_holder, imageId, true);
+                }
+            }
+
+            loadAllImages() {
+                this.loadImages();
+                this.loadOriginalImages();
+            }
+
+            setUpClickHandlers(imageHolder, doReset) {
+                imageHolder.addEventListener("click", (event) => {
+                    const clickPosition = getClickPosition(event);
+                    const imageId = event.currentTarget.dataset.id;
+                    const postData = {
+                        position: clickPosition,
+                        color: this.selectedColor,
+                        mode: doReset ? 'reset' : 'add'
+                    }
+
+                    fetch(
+                        `/label/${this.currentImage}/${imageId}`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(postData)
+                        }
+                    ).then(response => response.json()).then(data => {
+                        const imageId = data.sub_image_id;
+                        for (const imageHolder of this.image_holders) {
+                            if (parseInt(imageHolder.dataset.id) === imageId) {
+                                this.loadImage(imageHolder, imageId);
+                                break;
+                            }
+                        }
+                    }).catch((error) => console.log(`Error: ${error}`));
+                }, false);
+            }
+
+            setUpSaveHandler() {
+                const saveButton = document.querySelector('#modal-save-file');
+                saveButton.addEventListener("click", event => {
+                    const chosenFileName = document.querySelector('input#filename').value;
+                    fetch(
+                        'save',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({'file_name': chosenFileName})
+                        }
+                    ).then(response => {
+                       const modalElement = document.querySelector('#file_name_modal');
+                       const modal = bootstrap.Modal.getInstance(modalElement);
+                       modal.hide();
+                    }).catch( error => console.log(`Error could not save: ${error}`));
+                });
+            }
+
+            clearSelectedColor() {
+                const colorHolders = document.querySelectorAll('.color');
+                for (const colorHolder of colorHolders) {
+                    colorHolder.style.borderColor = 'transparent';
+                }
+            }
+
+            selectColor(domObject) {
+                this.clearSelectedColor();
+                domObject.style.borderColor = 'red';
+                this.selectedColor = domObject.dataset.color;
+            }
+
+            setupColorChooseHandler() {
+                const colorHolders = document.querySelectorAll('.color');
+                for (const colorHolder of colorHolders) {
+                    colorHolder.addEventListener('click', (event) => {
+                        const target = event.currentTarget;
+                        this.selectColor(target);
+                    });
+                }
+                this.selectColor(colorHolders[0]);
+            }
+
+        }
+
+        const startImage = parseInt("{{ start_image }}");
+        const numImages = parseInt("{{labeller.num_images}}");
+        const controller = new ImageController(startImage, numImages);
+        controller.loadAllImages();
+
+    </script>
+</body>
+</html>

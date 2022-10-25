@@ -1,0 +1,5 @@
+{
+  "checkpoint": "/models/doc_ufcn_models/stylegan_segmentation_bw_hwp_auction_doc_ufcn/checkpoints/122500.pt",
+  "class_to_color_map": "handwriting_colors.json",
+  "max_image_size": 0
+}

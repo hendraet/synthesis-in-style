@@ -1,0 +1,5 @@
+{
+  "base_dir": "[PATH TO CREATED SEGMENTATION]",
+  "num_clusters": 20,
+  "class_colors": "configs/handwriting_colors.json"
+}

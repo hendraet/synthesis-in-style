@@ -1,0 +1,9 @@
+{
+  "class_to_color_map": {
+    "background": "#000000",
+    "printed_text": "#0000FF",
+    "handwritten_text": "#FF0000"
+  },
+  "seed": 1,
+  "segmenter_type": "dataset_gan"
+}

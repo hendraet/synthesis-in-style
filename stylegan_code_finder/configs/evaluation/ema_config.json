@@ -1,0 +1,5 @@
+{
+  "checkpoint": "/models/ema_net_models/segmentation_bw_hwp_auction_ema/checkpoints/025000.pt",
+  "class_to_color_map": "handwriting_colors.json",
+  "max_image_size": 0
+}

@@ -1,0 +1,5 @@
+{
+  "checkpoint": "[path to trained segmentation model checkpoint]",
+  "class_to_color_map": "handwriting_colors.json",
+  "max_image_size": 0
+}
