@@ -110,7 +110,7 @@ def calculate_metric(confusion_matrix: torch.Tensor, class_names: List[str],
         score = IMPLEMENTED_METRICS[metric](confusion_matrix, class_idx)
         weight = confusion_matrix[class_idx, :].sum().item() / confusion_matrix.sum().item()
 
-        if "text" in name:  # TODO: magic string (same below)
+        if "text" in name:
             total_text_weight += weight
 
         scores["weighted_avg"]["score"] += score * weight
