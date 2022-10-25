@@ -34,6 +34,14 @@ class BBox(NamedTuple):
     def bottom_right(self) -> Tuple:
         return self.right, self.bottom
 
+    @property
+    def width(self) -> int:
+        return self.right - self.left
+
+    @property
+    def height(self) -> int:
+        return self.bottom - self.top
+
     def as_points(self) -> Tuple:
         # top left, top right, bottom right, bottom left
         return self.top_left(), \
@@ -94,11 +102,11 @@ def get_contours_from_prediction(predictions: torch.Tensor) -> Union[numpy.ndarr
     return contours
 
 
-def find_class_contours(class_predictions: torch.tensor, min_contour_area: int = 10,
-                        background_class_id: int = 0) -> Dict[int, List[numpy.ndarray]]:
+def find_class_contours(class_predictions: torch.tensor, min_contour_area: int = 10, background_class_id: int = 0,
+                        filter_classes: Tuple[int, ...] = ()) -> Dict[int, List[numpy.ndarray]]:
     all_contours = defaultdict(list)
     for class_id, predictions in enumerate(class_predictions):
-        if class_id == background_class_id:
+        if class_id == background_class_id or class_id in filter_classes:
             continue
 
         contours = get_contours_from_prediction(predictions)
