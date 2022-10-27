@@ -75,6 +75,7 @@ def get_best_median_configs(tabular_results: numpy.ndarray, hyperparam_names: tu
 
 def print_result_tables(results: dict):
     score_key_filters = get_calculated_score_key_filters(results, score_key="average")
+    iou_exists = False
     for score_key_filter in score_key_filters:
         tabular_results, score_class_names, hyperparam_names = get_tabular_results(results, score_key_filter)
 
@@ -84,6 +85,7 @@ def print_result_tables(results: dict):
         print_data_frame(best_results)
 
         if score_key_filter == "average_iou_scores":
+            iou_exists = True
             min_confidence = float(best_results.loc[best_results['class'] == "weighted_avg"]["min_confidence"])
             min_contour_area = int(best_results.loc[best_results['class'] == "weighted_avg"]["min_contour_area"])
             patch_overlap = float(best_results.loc[best_results['class'] == "weighted_avg"]["patch_overlap"])
@@ -94,15 +96,15 @@ def print_result_tables(results: dict):
                                                       extract_score_name(score_key_filter))
         for hyperparam_name, df in best_median_configs.items():
             print_data_frame(df, title=f"### {hyperparam_name}")
+    if iou_exists:
+        print("# Config for best mIoU\n")
+        results = get_result_for_given_config(best_miou_params.split(" "), results)
+        df = get_dataframe_from_results(results)
+        df = df.rename(columns={"iou_weighted_avg": "mIoU", "iou_weighted_text_avg": "mIoU_text_only"}).T
+        print_data_frame(df.head(3))
 
-    print("# Config for best mIoU\n")
-    results = get_result_for_given_config(best_miou_params.split(" "), results)
-    df = get_dataframe_from_results(results)
-    df = df.rename(columns={"iou_weighted_avg": "mIoU", "iou_weighted_text_avg": "mIoU_text_only"}).T
-    print_data_frame(df.head(3))
-
-    print("# All Metrics for best mIoU\n")
-    print_data_frame(df.tail(len(df) - 3))
+        print("# All Metrics for best mIoU\n")
+        print_data_frame(df.tail(len(df) - 3))
 
 
 def are_configs_matching(hyperparam_config: dict, run_config: dict) -> bool:

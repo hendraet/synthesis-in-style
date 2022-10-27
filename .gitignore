@@ -10,3 +10,5 @@ datasets
 docker-compose.yml
 *.md
 .run/
+.config
+.cache
