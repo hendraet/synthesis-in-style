@@ -9,7 +9,7 @@ import torch
 import torch.distributed as dist
 import wandb
 from pytorch_training.distributed import synchronize
-from lighning_modules.trans_u_net_lighning import TransUNetSegmenter
+from lighning_modules.trans_u_net_lightning import TransUNetSegmenter
 
 import global_config
 import pathlib
