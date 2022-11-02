@@ -6,11 +6,11 @@ from training_builder.trans_u_net_train_builder import TransUNetTrainBuilder
 from networks.trans_u_net.utils import DiceLoss
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from utils.clamped_cosine import ClampedCosineAnnealingLR
-from lighning_modules.base_lightning import BaseSegmenter
+from lightning_modules.base_lightning import BaseSegmenter
 
 class TransUNetSegmenter(BaseSegmenter):
-    def __init__(self, u_net_train_builder: TransUNetTrainBuilder, configs):
-        super().__init__(u_net_train_builder, configs)
+    def __init__(self, u_net_train_builder: TransUNetTrainBuilder, configs, segmentation_plotter, wandb_logger):
+        super().__init__(u_net_train_builder, configs, segmentation_plotter, wandb_logger)
         self.ce_loss = nn.CrossEntropyLoss()
         self.dice_loss = DiceLoss(configs['num_classes'])
 

@@ -9,13 +9,14 @@ import torch
 import torch.distributed as dist
 import wandb
 from pytorch_training.distributed import synchronize
-from lightning_modules.trans_u_net_lightning import TransUNetSegmenter
 
 import global_config
 import pathlib
 from training_builder.train_builder_selection import get_train_builder_class
+from lightning_modules.ligntning_module_selection import get_segmenter_class
 from utils.config import load_yaml_config, merge_config_and_args
 from utils.data_loading import get_data_loader
+from visualization.segmentation_plotter_lightning import SegmentationPlotter
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
@@ -71,12 +72,18 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     train_builder_class = get_train_builder_class(config)
     training_builder = train_builder_class(config, train_data_loader, val_data_loader, rank=rank, world_size=world_size)
 
-    trans_u_net_segmenter = TransUNetSegmenter(training_builder, config)
-
     pathlib.Path(args.log_dir, args.log_name).mkdir(parents=True, exist_ok=True)
+
     logging.info("Initializing wandb... ")
     logger = WandbLogger(name=args.log_name, save_dir=args.log_dir, project=args.wandb_project_name)
     logging.info("done")
+
+    plot_data_loader = val_data_loader
+    if val_data_loader is None:
+        plot_data_loader = train_data_loader
+    segmentation_plotter = SegmentationPlotter(plot_data_loader, config)
+    segmenter_class = get_segmenter_class(config)
+    segmenter = segmenter_class(training_builder, config, segmentation_plotter, logger)
 
     #snapshotter = training_builder.get_snapshotter()
     #if snapshotter is not None:
@@ -96,7 +103,7 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     try:
         segmentation_trainer = pl.Trainer(logger=logger, max_epochs=config['epochs'], max_steps=config['max_iter'],
                                           accelerator='gpu', devices=world_size)
-        segmentation_trainer.fit(trans_u_net_segmenter, train_data_loader, val_data_loader) #ckpt_path = None
+        segmentation_trainer.fit(segmenter, train_data_loader, val_data_loader) #ckpt_path = None
     finally:
         wandb.finish()
         if world_size > 1:

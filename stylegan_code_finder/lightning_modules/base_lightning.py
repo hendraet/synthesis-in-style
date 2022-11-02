@@ -6,22 +6,29 @@ from training_builder.base_train_builder import BaseTrainBuilder
 from networks.trans_u_net.utils import DiceLoss
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from utils.clamped_cosine import ClampedCosineAnnealingLR
+from visualization.segmentation_plotter_lightning import SegmentationPlotter
 
 
 class BaseSegmenter(pl.LightningModule):
-    def __init__(self, training_builder: BaseTrainBuilder, configs):
+    def __init__(self, training_builder: BaseTrainBuilder, configs, segmentation_plotter: SegmentationPlotter, wandb_logger):
         super().__init__()
         self.segmentation_network = training_builder.segmentation_network
         self.optimizers = list(training_builder.get_optimizers().values())
         self.configs = configs
         self.updater = training_builder.get_updater()
         self.iterations_per_epoch = self.get_iterations_per_epoch()
+        self.segmentation_plotter = segmentation_plotter
+        self.wandb_logger = wandb_logger
 
     def training_step(self, batch, batch_idx):
         raise NotImplementedError
 
     def validation_step(self, batch, batch_idx):
         raise NotImplementedError
+
+    def validation_epoch_end(self, validation_step_outputs):
+        image_dest = self.segmentation_plotter.run(self.segmentation_network)
+        self.wandb_logger.log_image(key="samples", images=[image_dest])
 
     def configure_optimizers(self):
         optimizers = self.optimizers
