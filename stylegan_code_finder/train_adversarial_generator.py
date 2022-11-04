@@ -15,12 +15,12 @@ from pytorch_training.trainer import DistributedTrainer
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from networks import load_weights, get_stylegan2_wplus_autoencoder, get_stylegan2_wplus_style_autoencoder  # TODO: check this erroneous import
-from networks.stylegan2.model import Discriminator as Stylegan2Discriminator
-from updater.adversarial_updater import AdversarialAutoencoderUpdater
-from utils.config import load_config, load_yaml_config
-from utils.data_loading import build_data_loader
-from utils.style_image_plotter import StyleImagePlotter
+from stylegan_code_finder.networks import load_weights, get_stylegan2_wplus_autoencoder, get_stylegan2_wplus_style_autoencoder  # TODO: check this erroneous import
+from stylegan_code_finder.networks.stylegan2.model import Discriminator as Stylegan2Discriminator
+from stylegan_code_finder.updater.adversarial_updater import AdversarialAutoencoderUpdater
+from stylegan_code_finder.utils.config import load_config, load_yaml_config
+from stylegan_code_finder.utils.data_loading import build_data_loader
+from stylegan_code_finder.utils.style_image_plotter import StyleImagePlotter
 
 
 def main(args, rank, world_size):

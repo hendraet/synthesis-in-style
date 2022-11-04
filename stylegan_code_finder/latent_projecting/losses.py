@@ -4,8 +4,8 @@ import torch
 from torch import Tensor
 from torch.nn import functional as F
 
-from losses.lpips import PerceptualLoss
-from losses.perceptual_style_loss import FixedPerceptualAndStyleLoss
+from stylegan_code_finder.losses.lpips import PerceptualLoss
+from stylegan_code_finder.losses.perceptual_style_loss import FixedPerceptualAndStyleLoss
 
 
 def w_plus_loss(lambdas: tp.Dict[str, float], device: str) -> tp.Callable:

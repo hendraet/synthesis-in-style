@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 from typing import Any
 
-from utils.segmentation_utils import get_contours_from_prediction
+from stylegan_code_finder.utils.segmentation_utils import get_contours_from_prediction
 
 
 class BaseSegmenter(nn.Module):

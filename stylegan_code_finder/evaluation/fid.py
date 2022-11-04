@@ -16,10 +16,10 @@ from torch.nn.functional import adaptive_avg_pool2d
 from torch.utils.data import DataLoader
 from tqdm.contrib import tenumerate
 
-from networks import StyleganAutoencoder
-from networks.stylegan1.model import Generator as StyleGAN1Generator
-from networks.stylegan2.model import Generator as StyleGAN2Generator
-from utils.dataset_creation import build_latent_and_noise_generator
+from stylegan_code_finder.networks import StyleganAutoencoder
+from stylegan_code_finder.networks.stylegan1.model import Generator as StyleGAN1Generator
+from stylegan_code_finder.networks.stylegan2.model import Generator as StyleGAN2Generator
+from stylegan_code_finder.utils.dataset_creation import build_latent_and_noise_generator
 
 
 @dataclass

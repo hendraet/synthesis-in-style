@@ -1,1 +1,1 @@
-from networks.swagan.model import Generator, Discriminator
+from stylegan_code_finder.networks.swagan.model import Generator, Discriminator

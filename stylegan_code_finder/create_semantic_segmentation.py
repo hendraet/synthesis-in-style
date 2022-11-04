@@ -13,12 +13,12 @@ from torchvision.utils import save_image
 from tqdm import trange
 
 from create_dataset_for_segmentation import build_latent_and_noise_generator
-from segmentation.gan_local_edit.factor_catalog import FactorCatalog
-from latent_projecting import Latents
-from networks import StyleganAutoencoder, TwoStemStyleganAutoencoder, load_autoencoder_or_generator
+from stylegan_code_finder.segmentation.gan_local_edit.factor_catalog import FactorCatalog
+from stylegan_code_finder.latent_projecting import Latents
+from stylegan_code_finder.networks import StyleganAutoencoder, TwoStemStyleganAutoencoder, load_autoencoder_or_generator
 from pytorch_training.images import make_image
-from utils.config import load_config
-from utils.data_loading import build_data_loader
+from stylegan_code_finder.utils.config import load_config
+from stylegan_code_finder.utils.data_loading import build_data_loader
 
 COLOR_MAP = [
     "#00B3FF",  # Vivid Yellow

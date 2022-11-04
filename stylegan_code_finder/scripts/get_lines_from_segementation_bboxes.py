@@ -14,9 +14,9 @@ from scipy.spatial import ConvexHull
 from skimage.draw import line
 from tqdm import tqdm, trange
 
-from scripts.script_utils import LineBBox
-from segmentation.evaluation.segmentation_visualization import draw_bounding_boxes
-from utils.segmentation_utils import BBox
+from stylegan_code_finder.scripts.script_utils import LineBBox
+from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import draw_bounding_boxes
+from stylegan_code_finder.utils.segmentation_utils import BBox
 
 Line = List[LineBBox]
 ProtoLine = List[Line]

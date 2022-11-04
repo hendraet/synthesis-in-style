@@ -4,8 +4,8 @@ from typing import List, Dict, Tuple
 import numpy
 import torch
 
-from segmentation.base_cluster_based_dataset_segmenter import BaseClusterBasedDatasetSegmenter
-from utils.segmentation_utils import bounding_rect_from_contours, PredictedClusters, ClassContours
+from stylegan_code_finder.segmentation.base_cluster_based_dataset_segmenter import BaseClusterBasedDatasetSegmenter
+from stylegan_code_finder.utils.segmentation_utils import bounding_rect_from_contours, PredictedClusters, ClassContours
 
 
 class BlackWhiteHandwrittenPrintedTextDatasetSegmenter(BaseClusterBasedDatasetSegmenter):

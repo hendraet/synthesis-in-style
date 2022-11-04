@@ -4,8 +4,8 @@ To download pickled instances for FFHQ and LSUN-Bedrooms, visit: https://drive.g
 
 import torch
 
-from segmentation.gan_local_edit import ptutils
-from segmentation.gan_local_edit.spherical_kmeans import MiniBatchSphericalKMeans
+from stylegan_code_finder.segmentation.gan_local_edit import ptutils
+from stylegan_code_finder.segmentation.gan_local_edit.spherical_kmeans import MiniBatchSphericalKMeans
 
 
 def one_hot(a, n):

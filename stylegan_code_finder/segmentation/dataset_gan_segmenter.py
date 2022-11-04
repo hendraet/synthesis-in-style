@@ -4,9 +4,9 @@ import numpy
 import torch
 from torch import nn
 
-from data.dataset_gan_dataset import scale_activations
-from networks.pixel_classifier.model import PixelClassifier, PixelEnsembleClassifier
-from segmentation.base_dataset_segmenter import BaseDatasetSegmenter
+from stylegan_code_finder.data.dataset_gan_dataset import scale_activations
+from stylegan_code_finder.networks.pixel_classifier.model import PixelClassifier, PixelEnsembleClassifier
+from stylegan_code_finder.segmentation.base_dataset_segmenter import BaseDatasetSegmenter
 
 
 class DatasetGANSegmenter(BaseDatasetSegmenter):

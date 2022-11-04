@@ -5,8 +5,8 @@ from typing import List
 
 import torch
 
-from segmentation.evaluation.evaluation_utils import get_calculated_score_key_filters, extract_score_name
-from segmentation.evaluation.segmentation_metric_calculation import calculate_metric
+from stylegan_code_finder.segmentation.evaluation.evaluation_utils import get_calculated_score_key_filters, extract_score_name
+from stylegan_code_finder.segmentation.evaluation.segmentation_metric_calculation import calculate_metric
 
 
 def remove_not_in_subset(results: dict, subset: List[str]):

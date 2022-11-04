@@ -3,7 +3,7 @@ from typing import Dict, List
 import numpy
 import torch
 from PIL import ImageColor
-from utils.segmentation_utils import Color
+from stylegan_code_finder.utils.segmentation_utils import Color
 
 
 def linear_gradient(start_rgb: Color, finish_rgb: Color, n: int = 10) -> List[Color]:

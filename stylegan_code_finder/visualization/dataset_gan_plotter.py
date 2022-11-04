@@ -3,8 +3,8 @@ from typing import List, Type
 import torch
 from torch.utils.data import Dataset
 
-from networks.base_segmenter import BaseSegmenter
-from visualization.segmentation_plotter import SegmentationPlotter
+from stylegan_code_finder.networks.base_segmenter import BaseSegmenter
+from stylegan_code_finder.visualization.segmentation_plotter import SegmentationPlotter
 
 
 class DatasetGANPlotter(SegmentationPlotter):

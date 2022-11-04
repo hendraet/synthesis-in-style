@@ -12,11 +12,11 @@ from tqdm import tqdm
 from tqdm.contrib import tenumerate
 
 from data import get_dataset_class
-from evaluation.fid import FID
-from evaluation.psnr_ssim import PSNRSSIMEvaluator
-from networks import get_autoencoder, load_weights, StyleganAutoencoder
-from utils.config import load_config
-from utils.data_loading import build_data_loader
+from stylegan_code_finder.evaluation.fid import FID
+from stylegan_code_finder.evaluation.psnr_ssim import PSNRSSIMEvaluator
+from stylegan_code_finder.networks import get_autoencoder, load_weights, StyleganAutoencoder
+from stylegan_code_finder.utils.config import load_config
+from stylegan_code_finder.utils.data_loading import build_data_loader
 
 
 def save_eval_result(eval_result: dict, eval_type: str, dest_dir: Path, dataset_name: str, checkpoint_name: str):

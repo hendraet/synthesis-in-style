@@ -9,9 +9,9 @@ from pytorch_training.images import make_image
 from tqdm import tqdm
 
 import global_config
-from networks import load_autoencoder_or_generator
-from utils.config import load_config
-from utils.dataset_creation import get_base_dirs, build_latent_and_noise_generator, generate_images
+from stylegan_code_finder.networks import load_autoencoder_or_generator
+from stylegan_code_finder.utils.config import load_config
+from stylegan_code_finder.utils.dataset_creation import get_base_dirs, build_latent_and_noise_generator, generate_images
 
 if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
     import pydevd_pycharm

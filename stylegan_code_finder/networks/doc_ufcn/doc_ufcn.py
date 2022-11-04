@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from networks.base_segmenter import BaseSegmenter
+from stylegan_code_finder.networks.base_segmenter import BaseSegmenter
 
 
 class DocUFCN(BaseSegmenter):

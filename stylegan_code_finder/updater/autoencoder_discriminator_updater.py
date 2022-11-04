@@ -6,7 +6,7 @@ from torch.nn.parallel import DistributedDataParallel
 from pytorch_training.reporter import get_current_reporter
 from pytorch_training.updater import UpdateDisabler, GradientApplier
 
-from updater.autoencoder_updater import AutoencoderUpdater
+from stylegan_code_finder.updater.autoencoder_updater import AutoencoderUpdater
 
 
 class AutoencoderDiscriminatorUpdater(AutoencoderUpdater):

@@ -16,11 +16,11 @@ from pytorch_training.triggers import get_trigger
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 import global_config
-from training_builder.base_train_builder import BaseTrainBuilder
-from training_builder.train_builder_selection import get_train_builder_class
-from utils.clamped_cosine import ClampedCosineAnnealingLR
-from utils.config import load_yaml_config, merge_config_and_args
-from utils.data_loading import get_data_loader
+from stylegan_code_finder.training_builder.base_train_builder import BaseTrainBuilder
+from stylegan_code_finder.training_builder.train_builder_selection import get_train_builder_class
+from stylegan_code_finder.utils.clamped_cosine import ClampedCosineAnnealingLR
+from stylegan_code_finder.utils.config import load_yaml_config, merge_config_and_args
+from stylegan_code_finder.utils.data_loading import get_data_loader
 
 
 def sanity_check_config(config: dict):

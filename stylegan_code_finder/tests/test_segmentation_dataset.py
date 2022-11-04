@@ -2,7 +2,7 @@ import numpy
 import pytest
 import torch
 
-from data.segmentation_dataset import SegmentationDataset
+from stylegan_code_finder.data.segmentation_dataset import SegmentationDataset
 
 
 class DatasetFake(SegmentationDataset):

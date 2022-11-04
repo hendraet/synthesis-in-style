@@ -5,8 +5,8 @@ import torchvision
 from torch import nn
 from torch.nn import functional as F
 
-from losses.perceptual_loss import PerceptualLoss
-from losses.style_loss import StyleLoss
+from stylegan_code_finder.losses.perceptual_loss import PerceptualLoss
+from stylegan_code_finder.losses.style_loss import StyleLoss
 
 
 class AbstractPerceptualAndStyleLoss(nn.Module):

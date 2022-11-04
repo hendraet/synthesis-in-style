@@ -15,10 +15,10 @@ import torch
 from statsmodels.distributions.empirical_distribution import ECDF
 from tqdm import tqdm, trange
 
-from latent_projecting import Latents
-from networks import load_weights, get_autoencoder
-from utils.config import load_config
-from utils.data_loading import build_data_loader
+from stylegan_code_finder.latent_projecting import Latents
+from stylegan_code_finder.networks import load_weights, get_autoencoder
+from stylegan_code_finder.utils.config import load_config
+from stylegan_code_finder.utils.data_loading import build_data_loader
 
 
 def embed_images(args: argparse.Namespace, config: dict, dataset: Path) -> Tuple[numpy.ndarray, List[numpy.ndarray], numpy.ndarray]:

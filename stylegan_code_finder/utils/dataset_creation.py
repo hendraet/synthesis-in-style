@@ -4,8 +4,8 @@ from typing import Union, Dict, Tuple, Iterable, Optional
 
 import torch
 
-from latent_projecting import Latents
-from networks import StyleganAutoencoder, TwoStemStyleganAutoencoder
+from stylegan_code_finder.latent_projecting import Latents
+from stylegan_code_finder.networks import StyleganAutoencoder, TwoStemStyleganAutoencoder
 
 
 def get_root_dir_of_checkpoint(checkpoint_file: Union[str, Path]) -> Path:

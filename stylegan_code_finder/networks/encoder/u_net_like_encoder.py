@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 from torchvision.models.resnet import BasicBlock
 
-from latent_projecting import Latents, CodeLatents
+from stylegan_code_finder.latent_projecting import Latents, CodeLatents
 
 
 class UNetLikeEncoder(nn.Module):

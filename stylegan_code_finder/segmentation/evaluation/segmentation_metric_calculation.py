@@ -9,7 +9,7 @@ import torch
 from PIL import Image
 from torch.nn.functional import one_hot
 
-from utils.segmentation_utils import segmentation_image_to_class_image
+from stylegan_code_finder.utils.segmentation_utils import segmentation_image_to_class_image
 
 
 def get_ground_truth_class_map_for_image(image_path: Path, ground_truth_dir: Path, class_to_color_map: dict,

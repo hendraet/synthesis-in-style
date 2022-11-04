@@ -10,10 +10,10 @@ from typing import Optional
 from PIL import Image, UnidentifiedImageError
 from tqdm import tqdm
 
-from scripts.get_lines_from_segementation_bboxes import process_image, set_opt_args_for_hw_extraction
-from segmentation.analysis_segmenter import VotingAssemblySegmenter
-from segmentation.evaluation.segmentation_visualization import draw_segmentation
-from utils.config import load_yaml_config
+from stylegan_code_finder.scripts.get_lines_from_segementation_bboxes import process_image, set_opt_args_for_hw_extraction
+from stylegan_code_finder.segmentation.analysis_segmenter import VotingAssemblySegmenter
+from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import draw_segmentation
+from stylegan_code_finder.utils.config import load_yaml_config
 
 if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
     import pydevd_pycharm

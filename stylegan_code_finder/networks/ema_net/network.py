@@ -7,8 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.batchnorm import _BatchNorm
 
-from networks.base_segmenter import BaseSegmenter
-from networks.ema_net.bn_lib.nn import SynchronizedBatchNorm2d
+from stylegan_code_finder.networks.base_segmenter import BaseSegmenter
+from stylegan_code_finder.networks.ema_net.bn_lib.nn import SynchronizedBatchNorm2d
 
 # This file was taken from https://github.com/XiaLiPKU/EMANet
 BN_MOM = 3e-4

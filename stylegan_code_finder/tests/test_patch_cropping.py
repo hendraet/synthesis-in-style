@@ -3,7 +3,7 @@ import math
 import pytest
 from typing import Union, Tuple
 
-from segmentation.analysis_segmenter import AnalysisSegmenter
+from stylegan_code_finder.segmentation.analysis_segmenter import AnalysisSegmenter
 
 
 class PatchCropTestAnalysisSegmenter(AnalysisSegmenter):

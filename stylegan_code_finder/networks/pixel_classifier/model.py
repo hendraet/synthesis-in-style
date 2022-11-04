@@ -7,7 +7,7 @@ import scipy.stats
 import torch
 from torch import nn
 
-from networks.base_segmenter import BaseSegmenter
+from stylegan_code_finder.networks.base_segmenter import BaseSegmenter
 
 
 class PixelEnsembleClassifier(BaseSegmenter):

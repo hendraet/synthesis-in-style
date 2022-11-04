@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn import Parameter
 
-from latent_projecting import Latents, CodeLatents
+from stylegan_code_finder.latent_projecting import Latents, CodeLatents
 
 
 class StyleganAutoencoder(nn.Module):

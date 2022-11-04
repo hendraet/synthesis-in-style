@@ -3,11 +3,10 @@ from typing import Dict
 import torch
 from pytorch_training import Updater
 from pytorch_training.optimizer import GradientClipAdam
+from stylegan_code_finder.networks.doc_ufcn import get_doc_ufcn
+from stylegan_code_finder.training_builder.base_train_builder import BaseSingleNetworkTrainBuilder
+from stylegan_code_finder.updater.segmentation_updater import StandardUpdater
 from torch.optim import Optimizer
-
-from networks.doc_ufcn import get_doc_ufcn
-from training_builder.base_train_builder import BaseSingleNetworkTrainBuilder
-from updater.segmentation_updater import StandardUpdater
 
 
 class DocUFCNTrainBuilder(BaseSingleNetworkTrainBuilder):

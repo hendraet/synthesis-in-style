@@ -13,8 +13,8 @@ import argparse
 import torch
 
 from PIL.Image import Image as ImageClass
-from utils.image_utils import opencv_image_to_pil, pil_image_to_opencv
-from utils.segmentation_utils import BBox, find_class_contours
+from stylegan_code_finder.utils.image_utils import opencv_image_to_pil, pil_image_to_opencv
+from stylegan_code_finder.utils.segmentation_utils import BBox, find_class_contours
 
 Color = Tuple[int, int, int]
 

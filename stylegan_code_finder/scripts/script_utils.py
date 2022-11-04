@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 
-from utils.segmentation_utils import BBox
+from stylegan_code_finder.utils.segmentation_utils import BBox
 
 
 class LineBBox:

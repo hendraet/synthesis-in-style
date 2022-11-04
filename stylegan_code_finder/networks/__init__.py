@@ -8,15 +8,15 @@ import torch
 import warnings
 from torch import nn
 
-from networks.convert_autoencoder_checkpoint import convert_autoencoder_checkpoint
-from networks.encoder.autoencoder import StyleganAutoencoder, CodeStyleganAutoencoder, \
+from stylegan_code_finder.networks.convert_autoencoder_checkpoint import convert_autoencoder_checkpoint
+from stylegan_code_finder.networks.encoder.autoencoder import StyleganAutoencoder, CodeStyleganAutoencoder, \
     ContentAndStyleStyleganAutoencoder, TwoStemStyleganAutoencoder, DropoutStyleganAutoencoder, \
     SuperResolutionStyleganAutoencoder
-from networks.encoder.resnet_based_encoder import Encoder
-from networks.encoder.u_net_like_encoder import UNetLikeEncoder, WPlusEncoder, WEncoder, WWPlusEncoder, WCodeEncoder, \
+from stylegan_code_finder.networks.encoder.resnet_based_encoder import Encoder
+from stylegan_code_finder.networks.encoder.u_net_like_encoder import UNetLikeEncoder, WPlusEncoder, WEncoder, WWPlusEncoder, WCodeEncoder, \
     WPlusResnetNoiseEncoder, WPlusNoNoiseEncoder, NoiseEncoder, WNoNoiseEncoder
-from networks.stylegan1.model import StyledGenerator, Generator as StyleGan1Generator
-from networks.swagan.model import Generator as SWAGANGenerator
+from stylegan_code_finder.networks.stylegan1.model import StyledGenerator, Generator as StyleGan1Generator
+from stylegan_code_finder.networks.swagan.model import Generator as SWAGANGenerator
 
 
 def load_weights(network: nn.Module, model_file: Union[str, Path], *, key: str = None, strict: bool = True, convert: bool = False) -> nn.Module:
@@ -30,7 +30,7 @@ def load_weights(network: nn.Module, model_file: Union[str, Path], *, key: str =
 
 
 if shutil.which('ninja'):
-    from networks.stylegan2.model import Generator
+    from stylegan_code_finder.networks.stylegan2.model import Generator
 
 
     def get_stylegan2_generator(image_size, latent_size, n_mlp=8, channel_multiplier=2, init_ckpt=None, ckpt_key='g_ema', strict=True) -> Generator:
@@ -325,7 +325,7 @@ def get_stylegan_1_based_autoencoder(args: argparse.Namespace) -> Callable:
 
 def get_stylegan_2_based_autoencoder(args: argparse.Namespace) -> Callable:
     try:
-        from networks import get_stylegan2_autoencoder
+        from stylegan_code_finder.networks import get_stylegan2_autoencoder
     except ImportError:
         raise RuntimeError("stylegan 2 not supported on fsoc lab")
 

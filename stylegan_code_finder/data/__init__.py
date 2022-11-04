@@ -1,7 +1,7 @@
 import argparse
 from typing import Type
 
-from data.autoencoder_dataset import AutoencoderDataset, DenoisingAutoencoderDataset, \
+from stylegan_code_finder.data.autoencoder_dataset import AutoencoderDataset, DenoisingAutoencoderDataset, \
     BlackAndWhiteDenoisingAutoencoderDataset
 
 

@@ -8,7 +8,7 @@ from typing import Tuple, List, Callable
 import torch
 from torch import optim
 
-from latent_projecting.losses import w_plus_style_loss, noise_loss, w_plus_loss, naive_noise_loss
+from stylegan_code_finder.latent_projecting.losses import w_plus_style_loss, noise_loss, w_plus_loss, naive_noise_loss
 from pytorch_training.optimizer.lr_scheduling import LambdaLRWithRamp
 
 

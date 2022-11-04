@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from losses import gram_matrix
+from stylegan_code_finder.losses import gram_matrix
 
 
 class StyleLoss(nn.Module):

@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from pytorch_training.data.json_dataset import JSONDataset
 from pytorch_training.images import is_image
 
-from utils.augment_dataset import augment_image
-from utils.segmentation_utils import segmentation_image_to_class_image
+from stylegan_code_finder.utils.augment_dataset import augment_image
+from stylegan_code_finder.utils.segmentation_utils import segmentation_image_to_class_image
 
 
 class SegmentationDataset(JSONDataset):

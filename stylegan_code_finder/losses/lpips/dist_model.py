@@ -1,25 +1,19 @@
 
 from __future__ import absolute_import
 
-import sys
-import numpy as np
-import torch
-from torch import nn
 import os
 from collections import OrderedDict
-from torch.autograd import Variable
-import itertools
-from .base_model import BaseModel
+
+import numpy as np
+import stylegan_code_finder.losses.lpips as util
+import torch
 from scipy.ndimage import zoom
-import fractions
-import functools
-import skimage.transform
+from torch.autograd import Variable
 from tqdm import tqdm
 
-from IPython import embed
-
 from . import networks_basic as networks
-import losses.lpips as util
+from .base_model import BaseModel
+
 
 class DistModel(BaseModel):
     def name(self):

@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from PIL import ImageColor
 
 import global_config
-from utils.segmentation_utils import PredictedClusters
+from stylegan_code_finder.utils.segmentation_utils import PredictedClusters
 
 
 class BaseDatasetSegmenter:

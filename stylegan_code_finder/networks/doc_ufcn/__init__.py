@@ -1,6 +1,6 @@
 from typing import Type
 
-from networks.doc_ufcn.doc_ufcn import DocUFCN, DocUFCNNoDropout, PixelShuffleDocUFCN
+from stylegan_code_finder.networks.doc_ufcn.doc_ufcn import DocUFCN, DocUFCNNoDropout, PixelShuffleDocUFCN
 
 
 def get_doc_ufcn(version: str) -> Type[DocUFCN]:

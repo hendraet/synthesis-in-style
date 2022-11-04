@@ -12,10 +12,10 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from networks import load_weights
-from networks.base_segmenter import BaseSegmenter
-from utils.data_loading import fill_plot_images
-from visualization.segmentation_plotter import SegmentationPlotter
+from stylegan_code_finder.networks import load_weights
+from stylegan_code_finder.networks.base_segmenter import BaseSegmenter
+from stylegan_code_finder.utils.data_loading import fill_plot_images
+from stylegan_code_finder.visualization.segmentation_plotter import SegmentationPlotter
 
 
 class BaseTrainBuilder:

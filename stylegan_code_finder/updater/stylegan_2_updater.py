@@ -8,8 +8,8 @@ import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel
 from torch import autograd, nn
 
-from distributed import reduce_sum
-from networks.stylegan2 import Generator
+from stylegan_code_finder.distributed import reduce_sum
+from stylegan_code_finder.networks.stylegan2 import Generator
 from pytorch_training import Updater
 from pytorch_training.distributed import get_world_size
 from pytorch_training.reporter import get_current_reporter

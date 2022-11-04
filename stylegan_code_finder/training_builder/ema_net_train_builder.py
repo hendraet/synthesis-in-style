@@ -3,10 +3,10 @@ from typing import Dict
 from pytorch_training import Updater
 from torch.optim import Optimizer, SGD
 
-from networks.ema_net.network import EMANet
-from networks.ema_net.utils import get_params
-from training_builder.base_train_builder import BaseSingleNetworkTrainBuilder
-from updater.segmentation_updater import EMANetUpdater
+from stylegan_code_finder.networks.ema_net.network import EMANet
+from stylegan_code_finder.networks.ema_net.utils import get_params
+from stylegan_code_finder.training_builder.base_train_builder import BaseSingleNetworkTrainBuilder
+from stylegan_code_finder.updater.segmentation_updater import EMANetUpdater
 
 
 class EMANetTrainBuilder(BaseSingleNetworkTrainBuilder):

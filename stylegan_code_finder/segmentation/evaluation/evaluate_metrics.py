@@ -9,7 +9,7 @@ from typing import List, Dict
 import numpy
 import pandas
 
-from segmentation.evaluation.evaluation_utils import preprocess_results, get_tabular_results, \
+from stylegan_code_finder.segmentation.evaluation.evaluation_utils import preprocess_results, get_tabular_results, \
     group_results_by_hyperparam_values, get_calculated_score_key_filters, add_mean_iou, \
     extract_score_name
 

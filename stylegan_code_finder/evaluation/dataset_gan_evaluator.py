@@ -3,7 +3,7 @@ from pytorch_training import Reporter
 from pytorch_training.extensions import Evaluator
 from torch.utils.data import Dataset
 
-from networks.pixel_classifier.model import ensemble_eval_mode
+from stylegan_code_finder.networks.pixel_classifier.model import ensemble_eval_mode
 
 
 class DiceGANEvalFunc:

@@ -13,10 +13,10 @@ from PIL.Image import Image as ImageClass
 from tqdm import tqdm
 
 from pytorch_training.images import is_image
-from segmentation.analysis_segmenter import VotingAssemblySegmenter
-from segmentation.evaluation.segmentation_metric_calculation import calculate_confusion_matrix, calculate_metric
-from segmentation.evaluation.segmentation_visualization import visualize_segmentation
-from utils.image_utils import resize_image
+from stylegan_code_finder.segmentation.analysis_segmenter import VotingAssemblySegmenter
+from stylegan_code_finder.segmentation.evaluation.segmentation_metric_calculation import calculate_confusion_matrix, calculate_metric
+from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import visualize_segmentation
+from stylegan_code_finder.utils.image_utils import resize_image
 
 if os.environ.get("REMOTE_PYCHARM_DEBUG_SESSION", False):
     import pydevd_pycharm

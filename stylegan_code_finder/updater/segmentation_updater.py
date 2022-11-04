@@ -5,7 +5,7 @@ from pytorch_training.updater import GradientApplier
 from torch import Tensor
 from torch import nn
 
-from networks.trans_u_net.utils import DiceLoss
+from stylegan_code_finder.networks.trans_u_net.utils import DiceLoss
 
 
 class StandardUpdater(Updater):

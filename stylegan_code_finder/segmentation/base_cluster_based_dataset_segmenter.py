@@ -10,8 +10,8 @@ import cv2
 import numpy
 import torch
 
-from segmentation.base_dataset_segmenter import BaseDatasetSegmenter
-from utils.segmentation_utils import draw_contours_on_same_sized_canvases, ClassContours, PredictedClusters, \
+from stylegan_code_finder.segmentation.base_dataset_segmenter import BaseDatasetSegmenter
+from stylegan_code_finder.utils.segmentation_utils import draw_contours_on_same_sized_canvases, ClassContours, PredictedClusters, \
     ClassContoursForSubImages, BBox
 
 
@@ -48,7 +48,7 @@ class BaseClusterBasedDatasetSegmenter(BaseDatasetSegmenter):
             except ModuleNotFoundError:
                 # we are loading a legacy catalog -> we need to adjust the module paths
                 import sys
-                from segmentation import gan_local_edit
+                from stylegan_code_finder.segmentation import gan_local_edit
                 sys.modules['gan_local_edit'] = gan_local_edit
                 catalogs = pickle.load(f)
         return self.adjust_catalog(catalogs)

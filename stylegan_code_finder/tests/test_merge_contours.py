@@ -6,8 +6,8 @@ import numpy
 import pytest
 from PIL import Image, ImageDraw
 
-from segmentation.base_dataset_segmenter import BaseDatasetSegmenter
-from utils.segmentation_utils import draw_contours_on_same_sized_canvases
+from stylegan_code_finder.segmentation.base_dataset_segmenter import BaseDatasetSegmenter
+from stylegan_code_finder.utils.segmentation_utils import draw_contours_on_same_sized_canvases
 
 
 class MergeTestDatasetSegmenter(BaseDatasetSegmenter):

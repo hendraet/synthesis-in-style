@@ -4,9 +4,9 @@ import numpy
 from pytorch_training import Updater
 from torch.optim import Optimizer, SGD
 
-from networks.trans_u_net.vit_seg_modeling import VisionTransformer, VIT_CONFIGS
-from training_builder.base_train_builder import BaseSingleNetworkTrainBuilder
-from updater.segmentation_updater import TransUNetUpdater
+from stylegan_code_finder.networks.trans_u_net.vit_seg_modeling import VisionTransformer, VIT_CONFIGS
+from stylegan_code_finder.training_builder.base_train_builder import BaseSingleNetworkTrainBuilder
+from stylegan_code_finder.updater.segmentation_updater import TransUNetUpdater
 
 
 class TransUNetTrainBuilder(BaseSingleNetworkTrainBuilder):

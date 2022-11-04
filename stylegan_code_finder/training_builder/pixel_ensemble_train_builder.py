@@ -9,12 +9,12 @@ from pytorch_training.optimizer import GradientClipAdam
 from pytorch_training.triggers import get_trigger
 from torch.optim import Optimizer
 
-from evaluation.dataset_gan_evaluator import DatasetGANEvaluator, DiceGANEvalFunc
-from networks.base_segmenter import BaseSegmenter
-from networks.pixel_classifier.model import PixelEnsembleClassifier
-from training_builder.base_train_builder import BaseTrainBuilder
-from updater.dataset_gan_updater import DatasetGANUpdater
-from visualization.dataset_gan_plotter import DatasetGANPlotter
+from stylegan_code_finder.evaluation.dataset_gan_evaluator import DatasetGANEvaluator, DiceGANEvalFunc
+from stylegan_code_finder.networks.base_segmenter import BaseSegmenter
+from stylegan_code_finder.networks.pixel_classifier.model import PixelEnsembleClassifier
+from stylegan_code_finder.training_builder.base_train_builder import BaseTrainBuilder
+from stylegan_code_finder.updater.dataset_gan_updater import DatasetGANUpdater
+from stylegan_code_finder.visualization.dataset_gan_plotter import DatasetGANPlotter
 
 
 class PixelEnsembleTrainBuilder(BaseTrainBuilder):

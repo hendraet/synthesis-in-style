@@ -8,11 +8,11 @@ from PIL.Image import Image as ImageClass
 from torchvision import transforms
 from tqdm import tqdm
 
-from networks.base_segmenter import BaseSegmenter
-from training_builder.train_builder_selection import get_train_builder_class
-from utils.config import load_config
-from utils.segmentation_utils import BBox
-from visualization.utils import network_output_to_color_image
+from stylegan_code_finder.networks.base_segmenter import BaseSegmenter
+from stylegan_code_finder.training_builder.train_builder_selection import get_train_builder_class
+from stylegan_code_finder.utils.config import load_config
+from stylegan_code_finder.utils.segmentation_utils import BBox
+from stylegan_code_finder.visualization.utils import network_output_to_color_image
 
 
 

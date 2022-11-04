@@ -11,17 +11,11 @@ from pytorch_training.data.caching_loader import CachingLoader
 from pytorch_training.data.json_dataset import JSONDataset
 from pytorch_training.data.utils import default_loader
 from pytorch_training.distributed import get_world_size, get_rank
+from stylegan_code_finder.data import AutoencoderDataset
+from stylegan_code_finder.networks import load_autoencoder_or_generator
+from stylegan_code_finder.utils.config import load_config
 from torch.utils.data import DataLoader, DistributedSampler
 from torchvision import transforms
-
-import global_config
-from data.autoencoder_dataset import AutoencoderDataset
-from data.base_dataset_gan_dataset import BaseDatasetGANDataset
-from data.dataset_gan_dataset import DatasetGANDataset
-from data.dataset_gan_generation_dataset import DatasetGANGenerationDataset
-from data.segmentation_dataset import AugmentedSegmentationDataset
-from networks import load_autoencoder_or_generator
-from utils.config import load_config
 
 
 def resilient_loader(path):
@@ -79,12 +73,15 @@ def build_data_loader(image_path: Union[str, Path], config: dict, uses_absolute_
 def build_dataset_gan_loader(json_path: Union[str, Path], tensor_path: Union[str, Path],
                              class_to_color_map_path: Union[str, Path],
                              config: dict, uses_absolute_paths: bool, shuffle_off: bool = False,
-                             dataset_class=Type[BaseDatasetGANDataset],
+                             dataset_class=Type['BaseDatasetGANDataset'],
                              loader_func: Callable = resilient_loader, generator=None,
                              drop_last: bool = True, collate_func: Callable = None) -> DataLoader:
-    if dataset_class == DatasetGANGenerationDataset:
+    # Checking for the __name__ of the class might seem hacky but reduces unnecessary inputs
+    if dataset_class.__name__ == 'DatasetGANGenerationDataset':
+        from stylegan_code_finder.data.dataset_gan_generation_dataset import DatasetGANGenerationDataset
         partial_dataset = functools.partial(dataset_class, generator_model=generator)
-    elif dataset_class == DatasetGANDataset:
+    elif dataset_class.__name__ == 'DatasetGANDataset':
+        from stylegan_code_finder.data.dataset_gan_dataset import DatasetGANDataset
         partial_dataset = DatasetGANDataset
     else:
         raise NotImplementedError
@@ -128,6 +125,7 @@ def get_data_loader(dataset_json_path: Path, dataset_name: str, args: argparse.N
         loader_func = resilient_loader
 
     if dataset_name == 'wpi':
+        from stylegan_code_finder.data.segmentation_dataset import AugmentedSegmentationDataset
         dataset_class = functools.partial(AugmentedSegmentationDataset,
                                           class_to_color_map_path=Path(args.class_to_color_map),
                                           image_size=config['image_size'],
@@ -137,6 +135,7 @@ def get_data_loader(dataset_json_path: Path, dataset_name: str, args: argparse.N
                                         loader_func=loader_func)
     elif config['dataset'] == 'dataset_gan':
         if config["generate"]:
+            from stylegan_code_finder.data.dataset_gan_generation_dataset import DatasetGANGenerationDataset
             args.device = "cuda"
             generator_config = load_config(config["checkpoint"], original_generator_config_path)
             args.checkpoint = config["checkpoint"]
@@ -147,6 +146,7 @@ def get_data_loader(dataset_json_path: Path, dataset_name: str, args: argparse.N
                                                    dataset_class=DatasetGANGenerationDataset, generator=generator,
                                                    drop_last=(not validation), loader_func=loader_func)
         else:
+            from stylegan_code_finder.data.dataset_gan_dataset import DatasetGANDataset
             data_loader = build_dataset_gan_loader(args.train_json, config["tensor_path"], Path(args.class_to_color_map),
                                                    config, False, shuffle_off=validation, dataset_class=DatasetGANDataset,
                                                    drop_last=(not validation), loader_func=loader_func)

@@ -8,7 +8,7 @@ import torchvision.transforms
 from numpy.random import default_rng
 from torch import nn
 
-from data.segmentation_dataset import SegmentationDataset
+from stylegan_code_finder.data.segmentation_dataset import SegmentationDataset
 
 
 class BaseDatasetGANDataset(SegmentationDataset):

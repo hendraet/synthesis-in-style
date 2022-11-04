@@ -18,12 +18,12 @@ from pytorch_training.triggers import get_trigger
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from extensions.fid_score import FIDScore
-from extensions.stylegan_image_plotter import StyleGANImagePlotter
-from updater.stylegan_2_updater import Stylegan2Updater as Updater
-from utils.config import load_yaml_config, merge_config_and_args
-from utils.data_loading import build_data_loader, resilient_loader
-from utils.weight_loading import load_weights
+from stylegan_code_finder.evaluation.fid_score import FIDScore
+from stylegan_code_finder.evaluation.stylegan_image_plotter import StyleGANImagePlotter
+from stylegan_code_finder.updater.stylegan_2_updater import Stylegan2Updater as Updater
+from stylegan_code_finder.utils.config import load_yaml_config, merge_config_and_args
+from stylegan_code_finder.utils.data_loading import build_data_loader, resilient_loader
+from stylegan_code_finder.utils.weight_loading import load_weights
 
 
 def main(args: argparse.Namespace, rank: int, world_size: int):
@@ -50,9 +50,9 @@ def main(args: argparse.Namespace, rank: int, world_size: int):
                                    loader_func=image_loader)
 
     if config['stylegan_variant'] == 'swagan':
-        from networks.swagan import Generator, Discriminator
+        from stylegan_code_finder.networks.swagan import Generator, Discriminator
     else:
-        from networks.stylegan2 import Generator, Discriminator
+        from stylegan_code_finder.networks.stylegan2 import Generator, Discriminator
 
     generator = Generator(
         config['image_size'],

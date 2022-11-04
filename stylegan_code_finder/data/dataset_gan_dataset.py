@@ -5,8 +5,8 @@ import torch
 from torch.nn import Upsample
 from tqdm import tqdm
 
-from data.base_dataset_gan_dataset import BaseDatasetGANDataset
-from utils.segmentation_utils import segmentation_image_to_class_image
+from stylegan_code_finder.data.base_dataset_gan_dataset import BaseDatasetGANDataset
+from stylegan_code_finder.utils.segmentation_utils import segmentation_image_to_class_image
 
 
 def scale_activations(activations: List[Dict[int, torch.Tensor]], upsamplers: List[Upsample]) -> List[torch.Tensor]:

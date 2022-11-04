@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 
-from losses.lpips import PerceptualLoss
-from losses.perceptual_style_loss import StyleLossNetwork, PerceptualAndStyleLoss
+from stylegan_code_finder.losses.lpips import PerceptualLoss
+from stylegan_code_finder.losses.perceptual_style_loss import StyleLossNetwork, PerceptualAndStyleLoss
 from pytorch_training import Updater
 from pytorch_training.reporter import get_current_reporter
 from pytorch_training.updater import GradientApplier
