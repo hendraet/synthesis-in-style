@@ -1,18 +1,25 @@
 import os
 import torch
 from torch import nn
-import pytorch_lightning as pl
-from training_builder.doc_ufcn_train_builder import DocUFCNTrainBuilder
-from networks.trans_u_net.utils import DiceLoss
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from utils.clamped_cosine import ClampedCosineAnnealingLR
 from lightning_modules.base_lightning import BaseSegmenter
+from pytorch_training.optimizer import GradientClipAdam
+from networks.doc_ufcn import get_doc_ufcn
 
 
 class DocUFCNSegmenter(BaseSegmenter):
-    def __init__(self, docUFCN_train_builder: DocUFCNTrainBuilder, configs):
-        super().__init__(docUFCN_train_builder, configs)
+    def __init__(self, configs):
+        super().__init__(configs)
         self.ce_loss = nn.CrossEntropyLoss(weight=torch.Tensor(configs['class_weights']))
+        optimizer_opts = {
+            'betas': (self.configs['beta1'], self.configs['beta2']),
+            'weight_decay': self.configs['weight_decay'],
+            'lr': float(self.configs['lr']),
+        }
+        self.optimizers = [GradientClipAdam(self.segmentation_network.parameters(), **optimizer_opts)]
+
+    def _initialize_segmentation_network(self):
+        segmentation_network_class = get_doc_ufcn('base')
+        self.segmentation_network = segmentation_network_class(3, 3)
 
     def training_step(self, batch, batch_idx):
         segmentation_prediction = self.segmentation_network(batch['images'])

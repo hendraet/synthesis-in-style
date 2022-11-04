@@ -12,12 +12,12 @@ from pytorch_training.distributed import synchronize
 
 import global_config
 import pathlib
-from training_builder.train_builder_selection import get_train_builder_class
 from lightning_modules.ligntning_module_selection import get_segmenter_class
 from utils.config import load_yaml_config, merge_config_and_args
 from utils.data_loading import get_data_loader
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+
 
 def sanity_check_config(config: dict):
     if 'network' in config:
@@ -68,9 +68,7 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     else:
         val_data_loader = None
 
-    train_builder_class = get_train_builder_class(config)
-    training_builder = train_builder_class(config, train_data_loader, val_data_loader, rank=rank, world_size=world_size)
-
+    config['num_iter_epoch'] = len(train_data_loader)
     pathlib.Path(args.log_dir, args.log_name).mkdir(parents=True, exist_ok=True)
 
     logging.info("Initializing wandb... ")
@@ -78,7 +76,7 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     logging.info("done")
 
     segmenter_class = get_segmenter_class(config)
-    segmenter = segmenter_class(training_builder, config)
+    segmenter = segmenter_class(config)
 
     if 'max_iter' in config:
         config['epochs'] = 1000  # pytorch lightning default

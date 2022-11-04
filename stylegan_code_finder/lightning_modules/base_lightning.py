@@ -1,21 +1,25 @@
-import os
 import pytorch_lightning as pl
-from training_builder.base_train_builder import BaseTrainBuilder
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from utils.clamped_cosine import ClampedCosineAnnealingLR
 from visualization.segmentation_plotter_lightning import SegmentationPlotter
+from networks import load_weights
 
 
 class BaseSegmenter(pl.LightningModule):
-    def __init__(self, training_builder: BaseTrainBuilder, configs):
+    def __init__(self, configs):
         super().__init__()
-        self.segmentation_network = training_builder.segmentation_network
-        self.optimizers = list(training_builder.get_optimizers().values())
         self.configs = configs
-        self.updater = training_builder.get_updater()
+        self.segmentation_network = None
+        self._initialize_segmentation_network()
+        if configs['fine_tune'] is not None:
+            load_weights(self.segmentation_network, configs['fine_tune'], key='segmentation_network')
+        self.optimizers = None
         self.iterations_per_epoch = self.get_iterations_per_epoch()
         self.segmentation_plotter = SegmentationPlotter(configs)
         self.num_val_visualization = configs['num_val_visualization']
+
+    def _initialize_segmentation_network(self):
+        raise NotImplementedError
 
     def training_step(self, batch, batch_idx):
         raise NotImplementedError
@@ -49,8 +53,7 @@ class BaseSegmenter(pl.LightningModule):
         return schedulers
 
     def get_iterations_per_epoch(self) -> int:
-        num_iterations_in_epoch = self.updater.epoch_length - self.updater.iteration_in_epoch
         if 'max_iter' in self.configs:
-            return min(self.configs['max_iter'] - self.updater.iteration, self.updater.epoch_length)
+            return min(self.configs['max_iter'], self.configs['num_iter_epoch'])
         else:
-            return num_iterations_in_epoch
+            return self.configs['num_iter_epoch']

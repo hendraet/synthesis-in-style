@@ -1,16 +1,23 @@
-import os
+import numpy as np
 import torch
 from torch import nn
-from training_builder.trans_u_net_train_builder import TransUNetTrainBuilder
 from networks.trans_u_net.utils import DiceLoss
 from lightning_modules.base_lightning import BaseSegmenter
+from networks.trans_u_net.vit_seg_modeling import VisionTransformer, VIT_CONFIGS
+from torch.optim import Optimizer, SGD
 
 
 class TransUNetSegmenter(BaseSegmenter):
-    def __init__(self, u_net_train_builder: TransUNetTrainBuilder, configs):
-        super().__init__(u_net_train_builder, configs)
+    def __init__(self, configs):
+        super().__init__(configs)
         self.ce_loss = nn.CrossEntropyLoss()
         self.dice_loss = DiceLoss(configs['num_classes'])
+        optimizer_opts = {
+            'lr': self.configs['lr'],
+            'momentum': self.configs['momentum'],
+            'weight_decay': self.configs['weight_decay']
+        }
+        self.optimizers = [SGD(self.segmentation_network.parameters(), **optimizer_opts)]
 
     def training_step(self, batch, batch_idx):
         prediction = self.segmentation_network(batch['images'])
@@ -33,3 +40,17 @@ class TransUNetSegmenter(BaseSegmenter):
         self.log('dice_val_loss', loss_dice)
         self.log('ce_val_loss', loss_ce)
         self.log('val_loss', val_loss)
+
+    def _initialize_segmentation_network(self):
+        transformer_config = VIT_CONFIGS[self.configs['pretrained_model_name']]
+        transformer_config.n_classes = self.configs['num_classes']
+        transformer_config.n_skip = self.configs['num_skip_channels']
+        vit_patches_size = self.configs['vit_patch_size']
+        transformer_config.patches.grid = (self.configs['image_size'] // vit_patches_size,
+                                           self.configs['image_size'] // vit_patches_size)
+
+        segmentation_network = VisionTransformer(transformer_config, img_size=self.configs['image_size'],
+                                                 num_classes=transformer_config.n_classes)
+        if self.configs['fine_tune'] is None:
+            segmentation_network.load_from(weights=np.load(self.configs['pretrained_path']))
+        self.segmentation_network = segmentation_network

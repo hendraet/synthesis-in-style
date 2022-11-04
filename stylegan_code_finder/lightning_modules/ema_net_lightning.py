@@ -1,12 +1,22 @@
 import torch
-from training_builder.ema_net_train_builder import EMANetTrainBuilder
 from lightning_modules.base_lightning import BaseSegmenter
+from networks.ema_net.network import EMANet
+from torch.optim import Optimizer, SGD
+from networks.ema_net.utils import get_params
 
 
 class EmaNetSegmenter(BaseSegmenter):
-    def __init__(self, ema_net_train_builder: EMANetTrainBuilder, configs):
-        super().__init__(ema_net_train_builder, configs)
+    def __init__(self, configs):
+        super().__init__(configs)
         self.em_mom = configs['em_mom']
+        self.optimizers = self.get_optimizers()
+
+    def _initialize_segmentation_network(self):
+        use_pretrained_resnet = True if self.configs['fine_tune'] is None else False
+        segmentation_network = EMANet(self.configs['num_classes'], self.configs['n_layers'],
+                                      use_pretrained_resnet=use_pretrained_resnet,
+                                      pretrained_path=self.configs['pretrained_path'] if use_pretrained_resnet else None)
+        self.segmentation_network = segmentation_network
 
     def training_step(self, batch, batch_idx):
         self.segmentation_network.train()
@@ -30,3 +40,26 @@ class EmaNetSegmenter(BaseSegmenter):
 
     def validation_step(self, batch, batch_idx):
         super(EmaNetSegmenter, self).validation_step(batch, batch_idx)
+
+    def get_optimizers(self) -> [Optimizer]:
+        optimizer = SGD(
+            params=[
+                {
+                    'params': get_params(self.segmentation_network, key='1x'),
+                    'lr': self.configs['lr'],
+                    'weight_decay': self.configs['weight_decay'],
+                },
+                {
+                    'params': get_params(self.segmentation_network, key='1y'),
+                    'lr': self.configs['lr'],
+                    'weight_decay': 0,
+                },
+                {
+                    'params': get_params(self.segmentation_network, key='2x'),
+                    'lr': 2 * self.configs['lr'],
+                    'weight_decay': 0.0,
+                }
+            ],
+            momentum=self.configs['lr_mom']
+        )
+        return [optimizer]
