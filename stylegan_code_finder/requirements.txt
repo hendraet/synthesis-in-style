@@ -14,7 +14,7 @@ numpy>=1.20.3
 opencv-python-headless>=4.5.3.56
 pandas>=1.3.3
 Pillow>=8.3.2
-protobuf>=3.18.0
+protobuf==3.19.6
 pycocotools>=2.0.2
 pytest>=6.2.5
 pytorch-fid>=0.2.0
