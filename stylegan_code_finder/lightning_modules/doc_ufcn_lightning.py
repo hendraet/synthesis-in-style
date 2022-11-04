@@ -10,12 +10,11 @@ from lightning_modules.base_lightning import BaseSegmenter
 
 
 class DocUFCNSegmenter(BaseSegmenter):
-    def __init__(self, docUFCN_train_builder: DocUFCNTrainBuilder, configs, segmentation_plotter, wandb_logger):
-        super().__init__(docUFCN_train_builder, configs, segmentation_plotter, wandb_logger)
+    def __init__(self, docUFCN_train_builder: DocUFCNTrainBuilder, configs):
+        super().__init__(docUFCN_train_builder, configs)
         self.ce_loss = nn.CrossEntropyLoss(weight=torch.Tensor(configs['class_weights']))
 
     def training_step(self, batch, batch_idx):
-        # training_step defines the train loop.
         segmentation_prediction = self.segmentation_network(batch['images'])
         batch_size, num_classes, height, width = segmentation_prediction.shape
         segmentation_prediction = segmentation_prediction.permute(0, 2, 3, 1)
@@ -30,7 +29,7 @@ class DocUFCNSegmenter(BaseSegmenter):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        # this is the validation loop
+        super(DocUFCNSegmenter, self).validation_step(batch, batch_idx)
         segmentation_prediction = self.segmentation_network(batch['images'])
         batch_size, num_classes, height, width = segmentation_prediction.shape
         segmentation_prediction = segmentation_prediction.permute(0, 2, 3, 1)

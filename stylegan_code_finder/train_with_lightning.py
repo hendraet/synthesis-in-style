@@ -16,7 +16,6 @@ from training_builder.train_builder_selection import get_train_builder_class
 from lightning_modules.ligntning_module_selection import get_segmenter_class
 from utils.config import load_yaml_config, merge_config_and_args
 from utils.data_loading import get_data_loader
-from visualization.segmentation_plotter_lightning import SegmentationPlotter
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
@@ -78,23 +77,11 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     logger = WandbLogger(name=args.log_name, save_dir=args.log_dir, project=args.wandb_project_name)
     logging.info("done")
 
-    plot_data_loader = val_data_loader
-    if val_data_loader is None:
-        plot_data_loader = train_data_loader
-    segmentation_plotter = SegmentationPlotter(plot_data_loader, config)
     segmenter_class = get_segmenter_class(config)
-    segmenter = segmenter_class(training_builder, config, segmentation_plotter, logger)
-
-    #snapshotter = training_builder.get_snapshotter()
-    #if snapshotter is not None:
-    #    trainer.extend(snapshotter)
-
-    #image_plotter = training_builder.get_image_plotter()
-    #if image_plotter is not None:
-    #    trainer.extend(image_plotter)
+    segmenter = segmenter_class(training_builder, config)
 
     if 'max_iter' in config:
-        config['epochs'] = 1000
+        config['epochs'] = 1000  # pytorch lightning default
     else:
         config['max_iter'] = -1
 
@@ -102,7 +89,7 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     logging.info('Setup complete. Starting training...')
     try:
         segmentation_trainer = pl.Trainer(logger=logger, max_epochs=config['epochs'], max_steps=config['max_iter'],
-                                          accelerator='gpu', devices=world_size)
+                                          accelerator='gpu', devices='auto')
         segmentation_trainer.fit(segmenter, train_data_loader, val_data_loader) #ckpt_path = None
     finally:
         wandb.finish()
@@ -141,6 +128,7 @@ if __name__ == '__main__':
     parser.add_argument('--wandb-project-name', default='Debug', help='The project name of the WandB project')
     parser.add_argument('--wandb-entity', help='The name of the WandB entity')
     parser.add_argument('--debug', action='store_true', default=False, help='Special mode for faster debugging')
+    parser.add_argument('--num_val', type=int, dest='num_val_visualization', default=2, help='Special mode for faster debugging')
 
     parsed_args = parser.parse_args()
     parsed_args.log_dir = os.path.join('logs', parsed_args.log_dir, parsed_args.log_name,

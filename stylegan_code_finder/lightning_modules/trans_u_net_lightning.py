@@ -1,21 +1,18 @@
 import os
 import torch
 from torch import nn
-import pytorch_lightning as pl
 from training_builder.trans_u_net_train_builder import TransUNetTrainBuilder
 from networks.trans_u_net.utils import DiceLoss
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from utils.clamped_cosine import ClampedCosineAnnealingLR
 from lightning_modules.base_lightning import BaseSegmenter
 
+
 class TransUNetSegmenter(BaseSegmenter):
-    def __init__(self, u_net_train_builder: TransUNetTrainBuilder, configs, segmentation_plotter, wandb_logger):
-        super().__init__(u_net_train_builder, configs, segmentation_plotter, wandb_logger)
+    def __init__(self, u_net_train_builder: TransUNetTrainBuilder, configs):
+        super().__init__(u_net_train_builder, configs)
         self.ce_loss = nn.CrossEntropyLoss()
         self.dice_loss = DiceLoss(configs['num_classes'])
 
     def training_step(self, batch, batch_idx):
-        # training_step defines the train loop.
         prediction = self.segmentation_network(batch['images'])
 
         ground_truth = torch.squeeze(batch['segmented'], dim=1)
@@ -26,7 +23,7 @@ class TransUNetSegmenter(BaseSegmenter):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        # this is the validation loop
+        super(TransUNetSegmenter, self).validation_step(batch, batch_idx)
         prediction = self.segmentation_network(batch['images'])
 
         ground_truth = torch.squeeze(batch['segmented'], dim=1)
