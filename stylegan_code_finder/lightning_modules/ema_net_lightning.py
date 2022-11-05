@@ -3,10 +3,11 @@ from lightning_modules.base_lightning import BaseSegmenter
 from networks.ema_net.network import EMANet
 from torch.optim import Optimizer, SGD
 from networks.ema_net.utils import get_params
+from typing import List
 
 
 class EmaNetSegmenter(BaseSegmenter):
-    def __init__(self, configs):
+    def __init__(self, configs: dict):
         super().__init__(configs)
         self.em_mom = configs['em_mom']
         self.optimizers = self.get_optimizers()
@@ -41,7 +42,7 @@ class EmaNetSegmenter(BaseSegmenter):
     def validation_step(self, batch, batch_idx):
         super(EmaNetSegmenter, self).validation_step(batch, batch_idx)
 
-    def get_optimizers(self) -> [Optimizer]:
+    def get_optimizers(self) -> List[Optimizer]:
         optimizer = SGD(
             params=[
                 {

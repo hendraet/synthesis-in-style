@@ -8,7 +8,7 @@ from torch.optim import Optimizer, SGD
 
 
 class TransUNetSegmenter(BaseSegmenter):
-    def __init__(self, configs):
+    def __init__(self, configs: dict):
         super().__init__(configs)
         self.ce_loss = nn.CrossEntropyLoss()
         self.dice_loss = DiceLoss(configs['num_classes'])
@@ -37,9 +37,9 @@ class TransUNetSegmenter(BaseSegmenter):
         loss_ce = self.ce_loss(prediction, ground_truth.long())
         loss_dice = self.dice_loss(prediction, ground_truth, softmax=True)
         val_loss = 0.5 * loss_ce + 0.5 * loss_dice
-        self.log('dice_val_loss', loss_dice)
-        self.log('ce_val_loss', loss_ce)
-        self.log('val_loss', val_loss)
+        self.log('dice_val_loss', loss_dice, sync_dist=True)
+        self.log('ce_val_loss', loss_ce, sync_dist=True)
+        self.log('val_loss', val_loss, sync_dist=True)
 
     def _initialize_segmentation_network(self):
         transformer_config = VIT_CONFIGS[self.configs['pretrained_model_name']]

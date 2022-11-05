@@ -2,16 +2,16 @@ import json
 from pathlib import Path
 from typing import List, Dict
 from collections import defaultdict
-import os
 import numpy
 import torch
+from torch import nn
 from PIL import ImageColor, Image
 import torchvision
 from pytorch_training.images.utils import make_image
 
 
 class SegmentationPlotter:
-    def __init__(self, config):
+    def __init__(self, config: dict):
         assert config['class_to_color_map'] is not None, "Class to Color map must be supplied to SegmentationPlotter!"
         with Path(config['class_to_color_map']).open() as f:
             self.class_to_color_map = json.load(f)
@@ -32,15 +32,14 @@ class SegmentationPlotter:
         color_images = (color_images / 255) * 2 - 1
         return torch.from_numpy(color_images.transpose(0, 3, 1, 2)).to(label_images.device)
 
-    def get_predictions(self, network, input_images, label_images) -> List[torch.Tensor]:
+    def get_predictions(self, network: nn.Module, input_images: torch.Tensor, label_images: torch.Tensor) -> List[torch.Tensor]:
         predictions = [input_images, label_images]
         predicted_classes = network.predict_classes(input_images)
         network_output = self.label_images_to_color_images(predicted_classes)
         predictions.append(network_output)
         return predictions
 
-    def run(self, network, batch) -> str:
-        torch.cuda.empty_cache()  # free up space in the GPU memory for the images
+    def run(self, network: nn.Module, batch) -> Image:
         plot_images = self.fill_one_batch(batch)
         input_images = torch.stack(plot_images['images'])
         label_images = self.label_images_to_color_images(torch.stack(plot_images['segmented']))
@@ -57,7 +56,6 @@ class SegmentationPlotter:
         output_image.save(dest_file_name)
 
         del display_images
-        torch.cuda.empty_cache()
         return output_image
 
     def fill_one_batch(self, batch) -> Dict[str, List[torch.Tensor]]:

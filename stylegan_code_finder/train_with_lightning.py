@@ -4,11 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
-
-import torch
-import torch.distributed as dist
 import wandb
-from pytorch_training.distributed import synchronize
 
 import global_config
 import pathlib
@@ -32,18 +28,8 @@ def sanity_check_config(config: dict):
                                                              f'be equal to the num_classes in the config'
 
 
-def setup_distributed(mpi_backend: str, rank: int, world_size: int):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
-    dist.init_process_group(mpi_backend, rank=rank, world_size=world_size)
-
-
-def cleanup():
-    dist.destroy_process_group()
-
-
-def main(rank: int, args: argparse.Namespace, world_size: int):
-    if world_size == 1 and os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
+def main(args: argparse.Namespace):
+    if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
         import pydevd_pycharm
 
         logging.info('Connecting to debugger...')
@@ -55,9 +41,6 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     config = load_yaml_config(args.config)
     config = merge_config_and_args(config, args)
     sanity_check_config(config)
-
-    if world_size > 1:
-        setup_distributed(args.mpi_backend, rank, world_size)
 
     train_data_loader = get_data_loader(Path(config['train_json']), config['dataset'], args, config,
                                         original_generator_config_path=args.original_generator_config_path)
@@ -78,21 +61,17 @@ def main(rank: int, args: argparse.Namespace, world_size: int):
     segmenter_class = get_segmenter_class(config)
     segmenter = segmenter_class(config)
 
-    if 'max_iter' in config:
-        config['epochs'] = 1000  # pytorch lightning default
-    else:
-        config['max_iter'] = -1
-
-    synchronize()
     logging.info('Setup complete. Starting training...')
     try:
-        segmentation_trainer = pl.Trainer(logger=logger, max_epochs=config['epochs'], max_steps=config['max_iter'],
-                                          accelerator='gpu', devices='auto')
-        segmentation_trainer.fit(segmenter, train_data_loader, val_data_loader) #ckpt_path = None
+        if 'max_iter' in config:
+            segmentation_trainer = pl.Trainer(strategy="ddp_find_unused_parameters_false", logger=logger,
+                                              max_steps=config['max_iter'], accelerator='gpu', devices='auto')
+        else:
+            segmentation_trainer = pl.Trainer(strategy="ddp_find_unused_parameters_false", logger=logger,
+                                              max_epochs=config['epochs'], accelerator='gpu', devices='auto')
+        segmentation_trainer.fit(segmenter, train_data_loader, val_data_loader)
     finally:
         wandb.finish()
-        if world_size > 1:
-            cleanup()
     logging.info('Training finished')
 
 
@@ -110,11 +89,7 @@ if __name__ == '__main__':
                         help='Path to json file with train images')
     parser.add_argument('--val-images', dest='validation_json',
                         help='path to json file with validation images')
-    parser.add_argument('--coco-gt', help='PAth to COCO GT required, if you set validation images')
     parser.add_argument('--fine-tune', help='Path to model to finetune from')
-    parser.add_argument('--local_rank', type=int, default=0)
-    parser.add_argument('--mpi-backend', default='nccl', choices=['nccl', 'gloo'],
-                        help='MPI backend to use for interprocess communication')
     parser.add_argument('--class-to-color-map', default='handwriting_colors.json',
                         help='path to json file with class color map')
     parser.add_argument('-c', '--cache-root',
@@ -124,14 +99,9 @@ if __name__ == '__main__':
     parser.add_argument('--warm-restarts', action='store_true', default=False,
                         help='If the scheduler should use warm restarts')
     parser.add_argument('--wandb-project-name', default='Debug', help='The project name of the WandB project')
-    parser.add_argument('--wandb-entity', help='The name of the WandB entity')
     parser.add_argument('--debug', action='store_true', default=False, help='Special mode for faster debugging')
-    parser.add_argument('--num_val', type=int, dest='num_val_visualization', default=2, help='Special mode for faster debugging')
+    parser.add_argument('--num_val', type=int, dest='num_val_visualization', default=2, help='number of validation batch images to send to wandb')
 
     parsed_args = parser.parse_args()
-    parsed_args.log_dir = os.path.join('logs', parsed_args.log_dir, parsed_args.log_name,
-                                       datetime.datetime.now().isoformat())
-
-    world_size = torch.cuda.device_count()
-    logging.info(f"Running on {world_size} GPU(s)")
-    torch.multiprocessing.spawn(main, args=(parsed_args, world_size), nprocs=world_size, join=True)
+    parsed_args.log_dir = Path('logs', parsed_args.log_dir, parsed_args.log_name, datetime.datetime.now().isoformat())
+    main(args=parsed_args)

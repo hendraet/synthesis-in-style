@@ -3,7 +3,7 @@ from lightning_modules.doc_ufcn_lightning import DocUFCNSegmenter
 from lightning_modules.trans_u_net_lightning import TransUNetSegmenter
 
 
-def get_segmenter_class(config):
+def get_segmenter_class(config: dict):
     if config['network'] == 'DocUFCN':
         segmenter_class = DocUFCNSegmenter
     elif config['network'] == 'TransUNet':

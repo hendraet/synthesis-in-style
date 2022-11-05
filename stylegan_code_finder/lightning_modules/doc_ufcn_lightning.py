@@ -7,7 +7,7 @@ from networks.doc_ufcn import get_doc_ufcn
 
 
 class DocUFCNSegmenter(BaseSegmenter):
-    def __init__(self, configs):
+    def __init__(self, configs: dict):
         super().__init__(configs)
         self.ce_loss = nn.CrossEntropyLoss(weight=torch.Tensor(configs['class_weights']))
         optimizer_opts = {
@@ -47,5 +47,5 @@ class DocUFCNSegmenter(BaseSegmenter):
         label_image = label_image.reshape((-1,))
 
         loss = self.ce_loss(segmentation_prediction, label_image)
-        self.log('val_loss', loss)
+        self.log('val_loss', loss, sync_dist=True)
 

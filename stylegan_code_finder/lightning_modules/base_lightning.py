@@ -3,10 +3,12 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from utils.clamped_cosine import ClampedCosineAnnealingLR
 from visualization.segmentation_plotter_lightning import SegmentationPlotter
 from networks import load_weights
+from typing import List
+from torch.optim import Optimizer
 
 
 class BaseSegmenter(pl.LightningModule):
-    def __init__(self, configs):
+    def __init__(self, configs: dict):
         super().__init__()
         self.configs = configs
         self.segmentation_network = None
@@ -34,7 +36,7 @@ class BaseSegmenter(pl.LightningModule):
         schedulers = self.get_scheduler(optimizers)
         return optimizers, schedulers
 
-    def get_scheduler(self, optimizers):
+    def get_scheduler(self, optimizers: List[Optimizer]) -> List[object]:
         if 'cosine_max_update_epoch' in self.configs:
             cosine_end_iteration = self.configs['cosine_max_update_epoch'] * self.iterations_per_epoch
         elif 'cosine_max_update_iter' in self.configs:
