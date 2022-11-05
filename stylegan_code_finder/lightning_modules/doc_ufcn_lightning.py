@@ -25,7 +25,7 @@ class DocUFCNSegmenter(BaseSegmenter):
         segmentation_prediction = self.segmentation_network(batch['images'])
         batch_size, num_classes, height, width = segmentation_prediction.shape
         segmentation_prediction = segmentation_prediction.permute(0, 2, 3, 1)
-        segmentation_prediction = torch.reshape(segmentation_prediction, (batch_size * height * width, num_classes))
+        segmentation_prediction = torch.reshape(segmentation_prediction, (-1, num_classes))
 
         label_image = batch['segmented']
         label_image = label_image.permute(0, 2, 3, 1)
@@ -40,7 +40,7 @@ class DocUFCNSegmenter(BaseSegmenter):
         segmentation_prediction = self.segmentation_network(batch['images'])
         batch_size, num_classes, height, width = segmentation_prediction.shape
         segmentation_prediction = segmentation_prediction.permute(0, 2, 3, 1)
-        segmentation_prediction = torch.reshape(segmentation_prediction, (batch_size * height * width, num_classes))
+        segmentation_prediction = torch.reshape(segmentation_prediction, (-1, num_classes))
 
         label_image = batch['segmented']
         label_image = label_image.permute(0, 2, 3, 1)

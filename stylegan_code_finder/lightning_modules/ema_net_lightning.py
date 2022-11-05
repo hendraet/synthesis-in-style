@@ -4,13 +4,14 @@ from networks.ema_net.network import EMANet
 from torch.optim import Optimizer, SGD
 from networks.ema_net.utils import get_params
 from typing import List
-
+from networks.ema_net.network import CrossEntropyLoss2d
 
 class EmaNetSegmenter(BaseSegmenter):
     def __init__(self, configs: dict):
         super().__init__(configs)
         self.em_mom = configs['em_mom']
         self.optimizers = self.get_optimizers()
+        self.ce_loss = CrossEntropyLoss2d()
 
     def _initialize_segmentation_network(self):
         use_pretrained_resnet = True if self.configs['fine_tune'] is None else False
@@ -20,7 +21,6 @@ class EmaNetSegmenter(BaseSegmenter):
         self.segmentation_network = segmentation_network
 
     def training_step(self, batch, batch_idx):
-        self.segmentation_network.train()
         loss, mu = self.segmentation_network(batch['images'], torch.squeeze(batch['segmented'], dim=1))
 
         with torch.no_grad():
@@ -41,6 +41,9 @@ class EmaNetSegmenter(BaseSegmenter):
 
     def validation_step(self, batch, batch_idx):
         super(EmaNetSegmenter, self).validation_step(batch, batch_idx)
+        segmentation_prediction = self.segmentation_network(batch['images'])
+        val_loss = self.ce_loss(segmentation_prediction, torch.squeeze(batch['segmented'], dim=1)).mean()
+        self.log('val_loss', val_loss, sync_dist=True)
 
     def get_optimizers(self) -> List[Optimizer]:
         optimizer = SGD(

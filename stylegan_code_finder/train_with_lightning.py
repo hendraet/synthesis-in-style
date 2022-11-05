@@ -7,12 +7,12 @@ from pathlib import Path
 import wandb
 
 import global_config
-import pathlib
 from lightning_modules.ligntning_module_selection import get_segmenter_class
 from utils.config import load_yaml_config, merge_config_and_args
 from utils.data_loading import get_data_loader
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 
 def sanity_check_config(config: dict):
@@ -52,7 +52,7 @@ def main(args: argparse.Namespace):
         val_data_loader = None
 
     config['num_iter_epoch'] = len(train_data_loader)
-    pathlib.Path(args.log_dir, args.log_name).mkdir(parents=True, exist_ok=True)
+    Path(args.log_dir, args.log_name).mkdir(parents=True, exist_ok=True)
 
     logging.info("Initializing wandb... ")
     logger = WandbLogger(name=args.log_name, save_dir=args.log_dir, project=args.wandb_project_name)
@@ -61,14 +61,26 @@ def main(args: argparse.Namespace):
     segmenter_class = get_segmenter_class(config)
     segmenter = segmenter_class(config)
 
+    if config['network'] == 'EMANet':
+        multiprocessing_strategy = 'ddp'
+    else:
+        multiprocessing_strategy = 'ddp_find_unused_parameters_false'
+
+    model_checkpoint_callback = ModelCheckpoint(save_top_k=10, monitor='val_loss',
+                                                dirpath=Path(config['log_dir'], 'checkpoints'),
+                                                filename="segmentation-{epoch:02d}-{val_loss:.2f}")
+    callbacks = [EarlyStopping(monitor='val_loss', patience=config['patience']), model_checkpoint_callback]
+
     logging.info('Setup complete. Starting training...')
     try:
         if 'max_iter' in config:
-            segmentation_trainer = pl.Trainer(strategy="ddp_find_unused_parameters_false", logger=logger,
-                                              max_steps=config['max_iter'], accelerator='gpu', devices='auto')
+            segmentation_trainer = pl.Trainer(strategy=multiprocessing_strategy, logger=logger,
+                                              log_every_n_steps=config['log_iter'], max_steps=config['max_iter'],
+                                              accelerator='gpu', devices='auto', callbacks=callbacks)
         else:
-            segmentation_trainer = pl.Trainer(strategy="ddp_find_unused_parameters_false", logger=logger,
-                                              max_epochs=config['epochs'], accelerator='gpu', devices='auto')
+            segmentation_trainer = pl.Trainer(strategy=multiprocessing_strategy, logger=logger,
+                                              log_every_n_steps=config['log_iter'], max_epochs=config['epochs'],
+                                              accelerator='gpu', devices='auto', callbacks=callbacks)
         segmentation_trainer.fit(segmenter, train_data_loader, val_data_loader)
     finally:
         wandb.finish()
@@ -100,7 +112,9 @@ if __name__ == '__main__':
                         help='If the scheduler should use warm restarts')
     parser.add_argument('--wandb-project-name', default='Debug', help='The project name of the WandB project')
     parser.add_argument('--debug', action='store_true', default=False, help='Special mode for faster debugging')
-    parser.add_argument('--num_val', type=int, dest='num_val_visualization', default=2, help='number of validation batch images to send to wandb')
+    parser.add_argument('--num_val', type=int, dest='num_val_visualization', default=2,
+                        help='number of validation batch images to send to wandb')
+    parser.add_argument('--patience', type=int, default=3)
 
     parsed_args = parser.parse_args()
     parsed_args.log_dir = Path('logs', parsed_args.log_dir, parsed_args.log_name, datetime.datetime.now().isoformat())
