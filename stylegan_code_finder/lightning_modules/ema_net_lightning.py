@@ -1,10 +1,12 @@
+from typing import List
+
 import torch
 from lightning_modules.base_lightning import BaseSegmenter
-from networks.ema_net.network import EMANet
-from torch.optim import Optimizer, SGD
-from networks.ema_net.utils import get_params
-from typing import List
 from networks.ema_net.network import CrossEntropyLoss2d
+from networks.ema_net.network import EMANet
+from networks.ema_net.utils import get_params
+from torch.optim import Optimizer, SGD
+
 
 class EmaNetSegmenter(BaseSegmenter):
     def __init__(self, configs: dict):
@@ -15,10 +17,10 @@ class EmaNetSegmenter(BaseSegmenter):
 
     def _initialize_segmentation_network(self):
         use_pretrained_resnet = True if self.configs['fine_tune'] is None else False
-        segmentation_network = EMANet(self.configs['num_classes'], self.configs['n_layers'],
-                                      use_pretrained_resnet=use_pretrained_resnet,
-                                      pretrained_path=self.configs['pretrained_path'] if use_pretrained_resnet else None)
-        self.segmentation_network = segmentation_network
+        self.segmentation_network = EMANet(self.configs['num_classes'], self.configs['n_layers'],
+                                           use_pretrained_resnet=use_pretrained_resnet,
+                                           pretrained_path=self.configs[
+                                               'pretrained_path'] if use_pretrained_resnet else None)
 
     def training_step(self, batch, batch_idx):
         loss, mu = self.segmentation_network(batch['images'], torch.squeeze(batch['segmented'], dim=1))
@@ -40,10 +42,10 @@ class EmaNetSegmenter(BaseSegmenter):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        super(EmaNetSegmenter, self).validation_step(batch, batch_idx)
+        super().validation_step(batch, batch_idx)
         segmentation_prediction = self.segmentation_network(batch['images'])
         val_loss = self.ce_loss(segmentation_prediction, torch.squeeze(batch['segmented'], dim=1)).mean()
-        self.log('val_loss', val_loss, sync_dist=True)
+        self.log('val_loss', val_loss)
 
     def get_optimizers(self) -> List[Optimizer]:
         optimizer = SGD(

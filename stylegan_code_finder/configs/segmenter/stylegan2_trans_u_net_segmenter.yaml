@@ -9,6 +9,7 @@ display_size: 16              # How many images do you want to display each time
 snapshot_save_iter: 2500      # How often do you want to save trained models
 log_iter: 10                  # How often do you want to log the training stats
 #validation_iter: 2            # --> if you want to do evaluation in a fixed interval and not every epoch
+num_val_visualization: 2      # Number of validation batch images to send to wandb
 
 # optimization options
 #max_iter: 500000              # maximum number of training iterations
@@ -20,6 +21,7 @@ weight_decay: 0.0001          # weight decay
 end_lr: 0.00000001            # final lr for the cosine_scheduling
 # cosine_max_update_epoch: 2    # After this number of epochs a CosineLRScheduler will stop decreasing the lr
 cosine_max_update_iter: 4000 # After this number of iterations a CosineLRScheduler will stop decreasing the lr
+patience: 3                   # How many epochs of non-improvement before the EarlyStopping sets in
 
 # data options
 num_classes: 3                  # The number of classes present in the dataset

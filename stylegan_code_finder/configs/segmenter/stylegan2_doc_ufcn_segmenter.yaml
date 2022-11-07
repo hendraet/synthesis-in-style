@@ -9,6 +9,7 @@ display_size: 50              # How many images do you want to display each time
 snapshot_save_iter: 2500      # How often do you want to save trained models
 log_iter: 10                  # How often do you want to log the training stats
 #validation_iter: 2            # --> if you want to do evaluation in a fixed interval and not every epoch
+num_val_visualization: 2      # Number of validation batch images to send to wandb
 
 # optimization options
 epochs: 4
@@ -22,6 +23,7 @@ beta1: 0.5                    # Adam parameter
 beta2: 0.999                  # Adam parameter
 init: xavier                  # initialization [gaussian/kaiming/xavier/orthogonal]
 class_weights: [1., 1., 1.]   # How classes should be weighted for CrossEntropyLoss
+patience: 3                   # How many epochs of non-improvement before the EarlyStopping sets in
 
 # data options
 num_classes: 3                  # The number of classes present in the dataset

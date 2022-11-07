@@ -1,13 +1,14 @@
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Dict
-from collections import defaultdict
+
 import numpy
 import torch
-from torch import nn
-from PIL import ImageColor, Image
 import torchvision
+from PIL import ImageColor, Image
 from pytorch_training.images.utils import make_image
+from torch import nn
 
 
 class SegmentationPlotter:
@@ -32,14 +33,15 @@ class SegmentationPlotter:
         color_images = (color_images / 255) * 2 - 1
         return torch.from_numpy(color_images.transpose(0, 3, 1, 2)).to(label_images.device)
 
-    def get_predictions(self, network: nn.Module, input_images: torch.Tensor, label_images: torch.Tensor) -> List[torch.Tensor]:
+    def get_predictions(self, network: nn.Module, input_images: torch.Tensor, label_images: torch.Tensor) -> List[
+        torch.Tensor]:
         predictions = [input_images, label_images]
         predicted_classes = network.predict_classes(input_images)
         network_output = self.label_images_to_color_images(predicted_classes)
         predictions.append(network_output)
         return predictions
 
-    def run(self, network: nn.Module, batch) -> Image:
+    def run(self, network: nn.Module, batch: torch.Tensor) -> Image:
         plot_images = self.fill_one_batch(batch)
         input_images = torch.stack(plot_images['images'])
         label_images = self.label_images_to_color_images(torch.stack(plot_images['segmented']))
@@ -58,7 +60,8 @@ class SegmentationPlotter:
         del display_images
         return output_image
 
-    def fill_one_batch(self, batch) -> Dict[str, List[torch.Tensor]]:
+    @staticmethod
+    def fill_one_batch(batch: torch.Tensor) -> Dict[str, List[torch.Tensor]]:
         image_list = defaultdict(list)
         for image_key, images in batch.items():
             for image in images:

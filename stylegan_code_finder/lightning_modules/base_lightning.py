@@ -1,10 +1,11 @@
+from typing import List
+
 import pytorch_lightning as pl
+from networks import load_weights
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from utils.clamped_cosine import ClampedCosineAnnealingLR
 from visualization.segmentation_plotter_lightning import SegmentationPlotter
-from networks import load_weights
-from typing import List
-from torch.optim import Optimizer
 
 
 class BaseSegmenter(pl.LightningModule):
@@ -19,6 +20,7 @@ class BaseSegmenter(pl.LightningModule):
         self.iterations_per_epoch = self.get_iterations_per_epoch()
         self.segmentation_plotter = SegmentationPlotter(configs)
         self.num_val_visualization = configs['num_val_visualization']
+        self.save_hyperparameters()
 
     def _initialize_segmentation_network(self):
         raise NotImplementedError
@@ -36,7 +38,7 @@ class BaseSegmenter(pl.LightningModule):
         schedulers = self.get_scheduler(optimizers)
         return optimizers, schedulers
 
-    def get_scheduler(self, optimizers: List[Optimizer]) -> List[object]:
+    def get_scheduler(self, optimizers: List[Optimizer]) -> List:
         if 'cosine_max_update_epoch' in self.configs:
             cosine_end_iteration = self.configs['cosine_max_update_epoch'] * self.iterations_per_epoch
         elif 'cosine_max_update_iter' in self.configs:

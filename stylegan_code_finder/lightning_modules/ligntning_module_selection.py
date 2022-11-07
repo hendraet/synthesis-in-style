@@ -1,5 +1,5 @@
-from lightning_modules.ema_net_lightning import EmaNetSegmenter
 from lightning_modules.doc_ufcn_lightning import DocUFCNSegmenter
+from lightning_modules.ema_net_lightning import EmaNetSegmenter
 from lightning_modules.trans_u_net_lightning import TransUNetSegmenter
 
 
