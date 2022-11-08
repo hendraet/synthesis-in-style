@@ -5,11 +5,10 @@ dataset: wpi                  # The dataset name which should be used.
 # logger options
 image_save_iter: 500          # How often do you want to save output images during training
 image_display_iter: 500       # How often do you want to display output images during training
-display_size: 50              # How many images do you want to display each time
 snapshot_save_iter: 2500      # How often do you want to save trained models
 log_iter: 10                  # How often do you want to log the training stats
 #validation_iter: 2            # --> if you want to do evaluation in a fixed interval and not every epoch
-num_val_visualization: 2      # Number of validation batch images to send to wandb
+num_val_visualization: 2      # Number of validation batches to be visualized by wandb
 
 # optimization options
 epochs: 8

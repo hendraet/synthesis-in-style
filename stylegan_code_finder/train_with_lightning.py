@@ -60,11 +60,11 @@ def main(args: argparse.Namespace):
     logger = WandbLogger(name=args.log_name, save_dir=args.log_dir, project=args.wandb_project_name)
     logging.info("done")
 
-    if config['lightning_cpt_pth'] is None:
+    if config['lightning_checkpoint_path'] is None:
         segmenter_class = get_segmenter_class(config)
         segmenter = segmenter_class(config)
     else:
-        segmenter = get_segmenter_class(config).load_from_checkpoint(config['lightning_cpt_pth'])
+        segmenter = get_segmenter_class(config).load_from_checkpoint(config['lightning_checkpoint_path'])
 
     if config['network'] == 'EMANet':
         multiprocessing_strategy = 'ddp'
@@ -107,8 +107,9 @@ if __name__ == '__main__':
                         help='Path to json file with train images')
     parser.add_argument('--val-images', dest='validation_json',
                         help='path to json file with validation images')
-    parser.add_argument('--fine-tune', help='Path to model to finetune from')
-    parser.add_argument('--lightning-cpt-pth', help='path to the lightning checkpoint')
+    parser.add_argument('--fine-tune', help='Path to a pytorch checkpoint: loads only weights')
+    parser.add_argument('-lcp', '--lightning-checkpoint-path', help='Path to a pytorch lightning checkpoint: '
+                                                                    'loads everything')
     parser.add_argument('--class-to-color-map', default='handwriting_colors.json',
                         help='path to json file with class color map')
     parser.add_argument('-c', '--cache-root',

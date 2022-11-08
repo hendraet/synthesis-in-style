@@ -15,8 +15,7 @@ class DocUFCNSegmenter(BaseSegmenter):
         self.optimizers = self.get_optimizers()
 
     def _initialize_segmentation_network(self):
-        segmentation_network_class = DocUFCN
-        self.segmentation_network = segmentation_network_class(3, 3)
+        self.segmentation_network = DocUFCN(3, 3)
 
     def training_step(self, batch, batch_idx):
         segmentation_prediction = self.segmentation_network(batch['images'])
