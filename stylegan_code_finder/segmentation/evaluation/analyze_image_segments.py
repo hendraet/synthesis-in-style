@@ -56,11 +56,6 @@ def parse_and_check_arguments():
                             help="Path to a directory that contains the images that should be analyzed")
     file_group.add_argument("-f", "--config-file", default="config.json", type=Path,
                             help="Path to the JSON file that contains the segmenter configuration")
-    file_group.add_argument("-op", "--original-config-path", type=Path, default=None,
-                            help="Path to the YAML/JSON file that contains the config for the original segmenter "
-                                 "training Has to be provided if model was not trained and the original logging "
-                                 "structure is not present, i.e. the config does not lie in a sibling directory of the "
-                                 "checkpoint.")
     file_group.add_argument("-gt", "--ground-truth-dir", type=Path,
                             help="The Path to the directory in which the ground-truth images for segmentation are "
                                  "stored. This argument is required when trying to calculate the dice score using "
@@ -188,7 +183,7 @@ def main(args: argparse.Namespace) -> NoReturn:
         model_config["checkpoint"],
         device="cuda",
         class_to_color_map=root_dir / model_config["class_to_color_map"],
-        original_config_path=args.original_config_path,
+        original_config_path=Path(model_config["config_path"]),
         max_image_size=int(model_config.get("max_image_size", 0)),
         print_progress=False,
         show_confidence_in_segmentation=args.show_confidence

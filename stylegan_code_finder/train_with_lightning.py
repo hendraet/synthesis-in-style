@@ -12,7 +12,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 import global_config
-from lightning_modules.ligntning_module_selection import get_segmenter_class
+from lightning_modules.lightning_module_selection import get_segmenter_class
 from utils.config import load_yaml_config, merge_config_and_args
 from utils.data_loading import get_data_loader
 
