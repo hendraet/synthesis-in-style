@@ -1,11 +1,13 @@
 from typing import List
 
 import pytorch_lightning as pl
+import torch
 from networks import load_weights
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from utils.clamped_cosine import ClampedCosineAnnealingLR
 from visualization.segmentation_plotter_lightning import SegmentationPlotter
+from networks.trans_u_net.utils import Precision, Recall, HandwritingPrecision, HandwritingRecall
 
 
 class BaseSegmenter(pl.LightningModule):
@@ -21,6 +23,10 @@ class BaseSegmenter(pl.LightningModule):
         self.segmentation_plotter = SegmentationPlotter(configs)
         self.num_val_visualization = configs['num_val_visualization']
         self.save_hyperparameters()
+        self.precision_metric = Precision(configs['num_classes'])
+        self.recall_metric = Recall(configs['num_classes'])
+        self.h_precision = HandwritingPrecision(configs['num_classes'])
+        self.h_recall = HandwritingRecall(configs['num_classes'])
 
     def _initialize_segmentation_network(self):
         raise NotImplementedError
@@ -61,3 +67,11 @@ class BaseSegmenter(pl.LightningModule):
             return min(self.configs['max_iter'], self.configs['num_iter_epoch'])
         else:
             return self.configs['num_iter_epoch']
+
+    def log_precision_recall_accuracy(self, prediction: torch.Tensor, ground_truth: torch.Tensor, softmax: bool):
+        self.log('val_precision', self.precision_metric(prediction, ground_truth, softmax=softmax))
+        self.log('val_recall', self.recall_metric(prediction, ground_truth, softmax=softmax))
+
+    def log_handwriting_precision_recall_accuracy(self, prediction: torch.Tensor, ground_truth: torch.Tensor, softmax: bool):
+        self.log('val_handwriting_precision', self.h_precision(prediction, ground_truth, softmax=softmax))
+        self.log('val_handwriting_recall', self.h_recall(prediction, ground_truth, softmax=softmax))

@@ -49,6 +49,7 @@ def augment_image(original_image: Image.Image, segmentation_image: Image.Image, 
             iaa.GammaContrast((0.1, 1.0)),  # lighter
         ])),
         iaa.Sometimes(0.10, iaa.Invert()),
+        iaa.Sometimes(0.8, iaa.arithmetic.AdditiveGaussianNoise(scale=(30, 50))),
     ]).to_deterministic()
 
     # Duplicates each image num_images times so that in the end each image can be augmented individually

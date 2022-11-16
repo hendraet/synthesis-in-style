@@ -71,9 +71,9 @@ def main(args: argparse.Namespace):
     else:
         multiprocessing_strategy = 'ddp_find_unused_parameters_false'
 
-    model_checkpoint_callback = ModelCheckpoint(save_top_k=3, monitor='val_loss',
+    model_checkpoint_callback = ModelCheckpoint(save_top_k=3, monitor='val_handwriting_recall', mode='max',
                                                 dirpath=Path(config['log_dir'], 'checkpoints'),
-                                                filename="segmentation-{epoch:02d}-{val_loss:.2f}")
+                                                filename="segmentation-{epoch:02d}-{val_handwriting_recall:.2f}")
     callbacks = [EarlyStopping(monitor='val_loss', patience=config['patience']), model_checkpoint_callback]
 
     if 'max_iter' in config:
@@ -81,12 +81,17 @@ def main(args: argparse.Namespace):
     else:
         config['max_iter'] = -1
 
+    if config['debug']:
+        validation_interval = 1.0
+    else:
+        validation_interval = 0.1
+
     logging.info('Setup complete. Starting training...')
     try:
         segmentation_trainer = pl.Trainer(strategy=multiprocessing_strategy, logger=logger,
                                           log_every_n_steps=config['log_iter'], max_epochs=config['epochs'],
                                           max_steps=config['max_iter'], accelerator='gpu', devices='auto',
-                                          callbacks=callbacks)
+                                          callbacks=callbacks, val_check_interval=validation_interval)
         segmentation_trainer.fit(segmenter, train_data_loader, val_data_loader)
     finally:
         wandb.finish()
