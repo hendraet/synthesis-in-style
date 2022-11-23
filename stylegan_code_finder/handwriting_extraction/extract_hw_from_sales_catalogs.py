@@ -10,7 +10,7 @@ from typing import Optional
 from PIL import Image, UnidentifiedImageError
 from tqdm import tqdm
 
-from stylegan_code_finder.scripts.get_lines_from_segementation_bboxes import process_image, set_opt_args_for_hw_extraction
+from stylegan_code_finder.handwriting_extraction.get_lines_from_segementation_bboxes import process_segmentation, set_opt_args_for_hw_extraction
 from stylegan_code_finder.segmentation.analysis_segmenter import VotingAssemblySegmenter
 from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import draw_segmentation
 from stylegan_code_finder.utils.config import load_yaml_config
@@ -32,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def get_segmenter(model_config: dict, root_dir: Path = Path('.'), original_config_path: Optional[Path] = None,
+def get_segmenter(model_config: dict, root_dir: Path = Path('../scripts'), original_config_path: Optional[Path] = None,
                   batch_size: Optional[int] = None, show_confidence: bool = False) -> VotingAssemblySegmenter:
     segmenter = VotingAssemblySegmenter(
         model_config["checkpoint"],
@@ -45,6 +45,18 @@ def get_segmenter(model_config: dict, root_dir: Path = Path('.'), original_confi
         show_confidence_in_segmentation=show_confidence  # TODO: plot conf
     )
     return segmenter
+
+
+def save_segmentation_json(json_out_path, bbox_dict, hyperparams, checkpoint_path, model_name, image_size):
+    meta_information = {
+        'model_name': model_name,
+        'model_checkpoint': checkpoint_path,
+        'model_hyperparams': hyperparams,
+        'image_size': image_size,
+        'bbox_dict': bbox_dict
+    }
+    with json_out_path.open('w') as f:
+        json.dump(meta_information, f)
 
 
 def main(args: argparse.Namespace):
@@ -85,6 +97,8 @@ def main(args: argparse.Namespace):
         # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_lines.png')  # TODO: remove
         # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/010000006782654_002_0030_rotated.png')  # TODO: remove
         # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_difficult_lines_small.png')  # TODO: remove
+        image_path = Path('/home/hendrik/pipeline-project/src/test/test_image_2_medium.png')  # TODO: remove
+
         if not image_path.exists():
             logging.warning(f'{image_path} does not exist')
             continue
@@ -98,13 +112,11 @@ def main(args: argparse.Namespace):
         image = original_image.convert('L')
 
         assembled_prediction = segmenter.segment_image(image)
-
-        image_prefix = f'{image_path.stem}_{model_config["model_name"]}'
-
         segmented_image = segmenter.prediction_to_color_image(assembled_prediction)
 
         output_dir = output_root_dir / Path(line).parent
         output_dir.mkdir(parents=True, exist_ok=True)
+        image_prefix = f'{image_path.stem}_{model_config["model_name"]}'
         segmented_image.save(output_dir / f"{image_prefix}_segmented_no_bboxes.png")
 
         ### vis
@@ -124,25 +136,19 @@ def main(args: argparse.Namespace):
         id_to_class_map = {v: k for k, v in class_to_id_map.items()}
         bbox_dict = {id_to_class_map[k]: v for k, v in bbox_dict.items()}
 
-        meta_information = {
-            'model_name': model_config['model_name'],
-            'model_checkpoint': model_config['checkpoint'],
-            'model_hyperparams': hyperparams,
-            'image_size': image.size,
-            'bbox_dict': bbox_dict
-        }
-        with (output_dir / f"{image_prefix}_meta_raw.json").open('w') as f:
-            json.dump(meta_information, f)
+        json_out_path = output_dir / f"{image_prefix}_meta_raw.json"
+        save_segmentation_json(json_out_path, bbox_dict, hyperparams, model_config['checkpoint'],
+                               model_config['model_name'], image.size)
 
         try:
-            process_image(
+            process_segmentation(
                 bbox_dict=bbox_dict,
                 segmented_image=segmented_image,
                 original_image=original_image,
                 slice_width=args.slice_width,
                 original_image_name=Path(Path(line).name),
                 out_dir=output_dir,
-                save_ambiguous_lines=args.save_ambiguous_lines,
+                keep_ambiguous_lines=args.save_ambiguous_lines,
                 min_num_bboxes=args.min_num_bboxes,
                 min_aspect_ratio=args.min_aspect_ratio,
                 min_line_area=args.min_line_area,

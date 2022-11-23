@@ -123,6 +123,7 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == '__main__':
+    # TODO: clean file
     parser = argparse.ArgumentParser(description='Inference of TrOCR model on given dataset')
     parser.add_argument('dataset_path', type=Path, help='path to config with common train settings, such as LR')
     parser.add_argument('--image_size', type=int, nargs='+', default=[64, 256],

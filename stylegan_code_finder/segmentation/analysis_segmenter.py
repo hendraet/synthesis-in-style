@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 from pathlib import Path
 from typing import List, Union, Tuple, Iterator, NoReturn, Optional
@@ -52,10 +53,16 @@ class AnalysisSegmenter:
     def set_hyperparams(self, hyperparam_config: dict) -> NoReturn:
         if "patch_overlap" in hyperparam_config:
             self.set_patch_overlap(*hyperparam_config["patch_overlap"])
+        else:
+            logging.warning("No 'patch_overlap' hyperparameter found in the config")
         if "min_confidence" in hyperparam_config:
             self.network.min_confidence = hyperparam_config["min_confidence"]
+        else:
+            logging.warning("No 'min_confidence' hyperparameter found in the config")
         if "min_contour_area" in hyperparam_config:
             self.network.min_contour_area = hyperparam_config["min_contour_area"]
+        else:
+            logging.warning("No 'min_contour_area' hyperparameter found in the config")
 
     def progress_bar(self, *args, **kwargs):
         if self.print_progress:
