@@ -7,9 +7,11 @@ from pathlib import Path
 
 import pytorch_lightning as pl
 import torch
+import torchvision
 import wandb
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_training.images.utils import make_image
 
 import global_config
 from lightning_modules.lightning_module_selection import get_segmenter_class
@@ -28,6 +30,25 @@ def sanity_check_config(config: dict):
         class_to_color_map = json.load(f)
     assert len(class_to_color_map) == config['num_classes'], f'The number of classes in the class_to_color_map must ' \
                                                              f'be equal to the num_classes in the config'
+
+
+# taken from https://gitlab.hpi.de/hendrik.raetz/ssl-htr
+class DatasetCheckCallback(pl.Callback):
+    def on_train_start(self, trainer, pl_module):
+        dataset = trainer.train_dataloader.dataset.datasets
+        num_log_samples = 4
+        num_sample_versions = dataset.num_augmentations + 1
+        step_size = len(dataset.image_data)
+        assert step_size >= num_log_samples * num_sample_versions
+
+        images = []
+        for j in range(num_log_samples):
+            for i in range(num_sample_versions):
+                images.append(dataset[i * step_size + j]['images'])
+
+        image_grid = torchvision.utils.make_grid(images, nrow=num_sample_versions)
+        dest_image = make_image(image_grid)
+        pl_module.logger.log_image(key='augmentation_check', images=[dest_image])
 
 
 def main(args: argparse.Namespace):
@@ -74,17 +95,15 @@ def main(args: argparse.Namespace):
     model_checkpoint_callback = ModelCheckpoint(save_top_k=3, monitor='val_handwriting_recall', mode='max',
                                                 dirpath=Path(config['log_dir'], 'checkpoints'),
                                                 filename="segmentation-{epoch:02d}-{val_handwriting_recall:.2f}")
-    callbacks = [EarlyStopping(monitor='val_loss', patience=config['patience']), model_checkpoint_callback]
+    callbacks = [EarlyStopping(monitor='val_loss', patience=config['patience']), model_checkpoint_callback,
+                 DatasetCheckCallback()]
 
     if 'max_iter' in config:
         config['epochs'] = 1000  # pytorch lightning default
     else:
         config['max_iter'] = -1
 
-    if config['debug']:
-        validation_interval = 1.0
-    else:
-        validation_interval = 0.1
+    validation_interval = config['validation_interval'] if not config['debug'] else 1.0
 
     logging.info('Setup complete. Starting training...')
     try:
@@ -125,6 +144,8 @@ if __name__ == '__main__':
                         help='If the scheduler should use warm restarts')
     parser.add_argument('--wandb-project-name', default='Debug', help='The project name of the WandB project')
     parser.add_argument('--debug', action='store_true', default=False, help='Special mode for faster debugging')
+    parser.add_argument('-vi', '--validation-interval', type=float, default=0.1,
+                        help='After which fraction of the Epoch the validation is executed')
 
     parsed_args = parser.parse_args()
     parsed_args.log_dir = Path('logs', parsed_args.log_dir, parsed_args.log_name, datetime.datetime.now().isoformat())

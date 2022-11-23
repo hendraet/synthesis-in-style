@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
+from typing import List
 
 
 class LossFunction(nn.Module):
-    def __init__(self, n_classes: int):
+    def __init__(self, n_classes: int, smooth: float = 1e-5):
         super().__init__()
         self.n_classes = n_classes
+        self.smooth = smooth
 
     def _one_hot_encoder(self, input_tensor: torch.Tensor):
         tensor_list = []
@@ -18,29 +20,31 @@ class LossFunction(nn.Module):
     def _metric_calculation(self, score, target):
         raise NotImplementedError
 
-    def forward(self, inputs: torch.Tensor, target: torch.Tensor, weight=None, softmax=False) -> float:
+    def forward(self, inputs: torch.Tensor, target: torch.Tensor, weight: List[float] = None, softmax: bool = False,
+                handwriting=False) -> float:
         if softmax:
             inputs = torch.softmax(inputs, dim=1)
         target = self._one_hot_encoder(target)
         if weight is None:
-            weight = [1] * self.n_classes
-        assert inputs.size() == target.size(), 'predict {} & target {} shape do not match'.format(inputs.size(),
-                                                                                                  target.size())
+            weight = [1 / self.n_classes] * self.n_classes
+        assert inputs.size() == target.size(), f'predict {inputs.size()} & target {target.size()} shape do not match'
         loss = 0.0
-        for i in range(self.n_classes):
-            class_loss = self._metric_calculation(inputs[:, i], target[:, i])
-            loss += class_loss * weight[i]
-        return loss / self.n_classes
+        if handwriting:
+            loss = self._metric_calculation(inputs[:, self.n_classes - 1], target[:, self.n_classes - 1])
+        else:
+            for i in range(self.n_classes):
+                class_loss = self._metric_calculation(inputs[:, i], target[:, i])
+                loss += class_loss * weight[i]
+        return loss
 
 
 class DiceLoss(LossFunction):
     def _metric_calculation(self, score: torch.Tensor, target: torch.Tensor) -> float:
         target = target.float()
-        smooth = 1e-5
         intersect = torch.sum(score * target)
         y_sum = torch.sum(target * target)
         z_sum = torch.sum(score * score)
-        loss = (2 * intersect + smooth) / (z_sum + y_sum + smooth)
+        loss = (2 * intersect + self.smooth) / (z_sum + y_sum + self.smooth)
         loss = 1 - loss
         return loss
 
@@ -53,57 +57,25 @@ class TverskyLoss(LossFunction):
 
     def _metric_calculation(self, score: torch.Tensor, target: torch.Tensor) -> float:
         target = target.float()
-        smooth = 1e-5
         tp = torch.sum(score * target)
         fp = torch.sum((1-target) * score)
         fn = torch.sum(target * (1-score))
-        loss = (tp + smooth) / (tp + self.alpha*fp + self.beta*fn + smooth)
+        loss = (tp + self.smooth) / (tp + self.alpha*fp + self.beta*fn + self.smooth)
         loss = 1 - loss
-        return loss
-
-
-class HandwritingLoss(LossFunction):
-    def forward(self, inputs: torch.Tensor, target: torch.Tensor, weight=None, softmax: bool = False) -> float:
-        if softmax:
-            inputs = torch.softmax(inputs, dim=1)
-        target = self._one_hot_encoder(target)
-        assert inputs.size() == target.size(), 'predict {} & target {} shape do not match'.format(inputs.size(),
-                                                                                                  target.size())
-        # This presumes that the handwritten class is always the last
-        loss = self._metric_calculation(inputs[:, self.n_classes - 1], target[:, self.n_classes - 1])
         return loss
 
 
 class Precision(LossFunction):
     def _metric_calculation(self, score: torch.Tensor, target: torch.Tensor) -> float:
         target = target.float()
-        smooth = 1e-5
         tp = torch.sum(score * target)
         fp = torch.sum((1 - target) * score)
-        return (tp + smooth) / (tp + fp + smooth)
+        return (tp + self.smooth) / (tp + fp + self.smooth)
 
 
 class Recall(LossFunction):
     def _metric_calculation(self, score: torch.Tensor, target: torch.Tensor) -> float:
         target = target.float()
-        smooth = 1e-5
         tp = torch.sum(score * target)
         fn = torch.sum(target * (1-score))
-        return (tp + smooth) / (tp + fn + smooth)
-
-
-class HandwritingPrecision(HandwritingLoss, Precision):
-    def _metric_calculation(self, score: torch.Tensor, target: torch.Tensor) -> float:
-        return super(HandwritingPrecision, self)._metric_calculation(score, target)
-
-    def forward(self, inputs, target, weight=None, softmax=False) -> float:
-        return super(HandwritingPrecision, self).forward(inputs, target, weight, softmax)
-
-
-class HandwritingRecall(HandwritingLoss, Recall):
-    def _metric_calculation(self, score: torch.Tensor, target: torch.Tensor) -> float:
-        return super(HandwritingRecall, self)._metric_calculation(score, target)
-
-    def forward(self, inputs, target, weight=None, softmax=False) -> float:
-        return super(HandwritingRecall, self).forward(inputs, target, weight, softmax)
-
+        return (tp + self.smooth) / (tp + fn + self.smooth)
