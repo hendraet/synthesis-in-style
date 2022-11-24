@@ -19,10 +19,10 @@ PredictedClusters = Dict[str, Dict[str, torch.Tensor]]
 
 
 class BBox(NamedTuple):
-    left: int
-    top: int
-    right: int
-    bottom: int
+    left: Union[int, float]
+    top: Union[int, float]
+    right: Union[int, float]
+    bottom: Union[int, float]
 
     @classmethod
     def from_opencv_bounding_rect(cls, x, y, width, height):
@@ -62,6 +62,19 @@ class BBox(NamedTuple):
             max(self.right, other_box.right),
             max(self.bottom, other_box.bottom),
         )
+
+
+def normalize_bboxes(original_bboxes: List[BBox], image_size: Tuple[int, int]) -> List[BBox]:
+    image_width, image_height = image_size
+    bboxes = []
+    for bbox in original_bboxes:
+        bboxes.append(BBox(
+            bbox.left / image_width,
+            bbox.top / image_height,
+            bbox.right / image_width,
+            bbox.bottom / image_height,
+        ))
+    return bboxes
 
 
 def bounding_rect_from_contours(contours: List[numpy.ndarray]) -> numpy.ndarray:

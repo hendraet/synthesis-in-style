@@ -8,11 +8,11 @@ from typing import List, Tuple, Dict, Optional
 
 import numpy
 from PIL import Image
-from stylegan_code_finder.handwriting_extraction.utils import LineBBox, get_line_rotation, rotate_polygon, \
-    radians_to_degrees, get_mutual_bbox, get_min_bbox, degrees_to_radians
 
 from stylegan_code_finder.handwriting_extraction.medial_seam_calculation import get_dist_between_bbox_and_seam, \
     calculate_medial_seams
+from stylegan_code_finder.handwriting_extraction.utils import LineBBox, rotate_polygon, \
+    radians_to_degrees, get_mutual_bbox, get_min_bbox, degrees_to_radians
 from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import draw_bounding_boxes
 from stylegan_code_finder.utils.segmentation_utils import BBox
 
