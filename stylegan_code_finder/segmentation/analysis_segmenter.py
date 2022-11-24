@@ -9,11 +9,10 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from networks.base_segmenter import BaseSegmenter
-from training_builder.train_builder_selection import get_train_builder_class
 from utils.config import load_config
 from utils.segmentation_utils import BBox
 from visualization.utils import network_output_to_color_image
-
+from lightning_modules.lightning_module_selection import get_segmenter_class
 
 
 class AnalysisSegmenter:
@@ -73,11 +72,8 @@ class AnalysisSegmenter:
         # patch to support old config files where DocUFCN was the only available model
         if self.config['network'] == 'base':
             self.config['network'] = 'DocUFCN'
-        train_builder_class = get_train_builder_class(self.config)
-        training_builder = train_builder_class(self.config)
-        segmentation_network = training_builder.get_network()
-        segmentation_network.eval()
-
+        lightning_model = get_segmenter_class(self.config).load_from_checkpoint(self.config['fine_tune'])
+        segmentation_network = lightning_model.segmentation_network.to(self.device)
         return segmentation_network
 
     def calculate_bboxes_for_patches(self, image_width: int, image_height: int) -> Tuple[BBox]:
