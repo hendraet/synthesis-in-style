@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import warnings
 
 import pytorch_lightning as pl
 import torch
@@ -30,6 +31,8 @@ def sanity_check_config(config: dict):
         class_to_color_map = json.load(f)
     assert len(class_to_color_map) == config['num_classes'], f'The number of classes in the class_to_color_map must ' \
                                                              f'be equal to the num_classes in the config'
+    if list(class_to_color_map)[-1] != 'handwritten_text':
+        warnings.warn('The color_map classes are in an unusual order. Handwriting validation metrics might display the wrong class because of that.')
 
 
 # taken from https://gitlab.hpi.de/hendrik.raetz/ssl-htr
@@ -144,8 +147,6 @@ if __name__ == '__main__':
                         help='If the scheduler should use warm restarts')
     parser.add_argument('--wandb-project-name', default='Debug', help='The project name of the WandB project')
     parser.add_argument('--debug', action='store_true', default=False, help='Special mode for faster debugging')
-    parser.add_argument('-vi', '--validation-interval', type=float, default=0.1,
-                        help='After which fraction of the Epoch the validation is executed')
 
     parsed_args = parser.parse_args()
     parsed_args.log_dir = Path('logs', parsed_args.log_dir, parsed_args.log_name, datetime.datetime.now().isoformat())

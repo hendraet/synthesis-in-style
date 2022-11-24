@@ -9,6 +9,7 @@ snapshot_save_iter: 2500      # How often do you want to save trained models
 log_iter: 10                  # How often do you want to log the training stats
 #validation_iter: 2            # --> if you want to do evaluation in a fixed interval and not every epoch
 num_val_visualization: 2      # Number of validation batches to be visualized by wandb
+validation_interval: 0.1      #After which fraction of the Epoch the validation is executed
 
 # optimization options
 #max_iter: 500000              # maximum number of training iterations
