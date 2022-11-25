@@ -1,14 +1,13 @@
-import pickle
 from pathlib import Path
 from typing import List, Dict, Tuple
 
 import cv2
+import global_config
 import numpy
 import torch
 import torch.nn.functional as F
 from PIL import ImageColor
 
-import global_config
 from stylegan_code_finder.utils.segmentation_utils import PredictedClusters
 
 

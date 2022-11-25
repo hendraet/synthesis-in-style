@@ -6,21 +6,19 @@ from __future__ import print_function
 import copy
 import logging
 import math
-
 from os.path import join as pjoin
 
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 from ml_collections import ConfigDict
-
-from torch.nn import CrossEntropyLoss, Dropout, Softmax, Linear, Conv2d, LayerNorm
-from torch.nn.modules.utils import _pair
 from scipy import ndimage
+from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
+from torch.nn.modules.utils import _pair
+
 from . import vit_seg_configs as configs
 from .vit_seg_modeling_resnet_skip import ResNetV2
 from ..base_segmenter import BaseSegmenter
-
 
 # This file is taken from https://github.com/Beckschen/TransUNet
 

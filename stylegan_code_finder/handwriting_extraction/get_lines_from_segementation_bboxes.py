@@ -10,7 +10,7 @@ import numpy
 from PIL import Image
 
 from stylegan_code_finder.handwriting_extraction.medial_seam_calculation import get_dist_between_bbox_and_seam, \
-    calculate_medial_seams
+    calculate_medial_seams, calculate_energy_map, calculate_separating_seams
 from stylegan_code_finder.handwriting_extraction.utils import LineBBox, rotate_polygon, \
     radians_to_degrees, get_mutual_bbox, get_min_bbox, degrees_to_radians
 from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import draw_bounding_boxes
@@ -171,7 +171,8 @@ def split_lines(line_bbox_map: Dict[int, Line], line_split_factor: float = 2) ->
     return partial_line_bbox_map
 
 
-def postprocess_ambiguous_lines(ambiguous_line_bbox_map: LineMap) -> LineMap:
+def postprocess_ambiguous_lines(ambiguous_line_bbox_map: LineMap, separating_seams: list) -> Tuple[LineMap, LineMap]:
+    leftover_ambiguous_lines = defaultdict(list)
     additional_clear_lines = defaultdict(list)
     for line_id, ambiguous_line_parts in ambiguous_line_bbox_map.items():
         for line_part in ambiguous_line_parts:
@@ -179,19 +180,26 @@ def postprocess_ambiguous_lines(ambiguous_line_bbox_map: LineMap) -> LineMap:
                 continue
             unambig_parts = []
             current_unambig_part = []
+            ambig_parts = []
+            # TODO: comment this shit
+            # TODO: debug this and maybe use separating seams
             for bbox in line_part:
                 if bbox.is_ambiguous():
+                    ambig_parts.append(bbox)
                     if len(current_unambig_part) > 0:
                         unambig_parts.append(current_unambig_part)
                         current_unambig_part = []
                 else:
                     current_unambig_part.append(bbox)
+            if len(current_unambig_part) > 0:
+                unambig_parts.append(current_unambig_part)
             if len(unambig_parts) > 0:
                 additional_clear_lines[line_id].append(unambig_parts)
-    return additional_clear_lines
+            leftover_ambiguous_lines[line_id].append(ambig_parts)
+    return additional_clear_lines, leftover_ambiguous_lines
 
 
-def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap) -> Tuple[LineMap, LineMap]:
+def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap, separating_seams: list) -> Tuple[LineMap, LineMap]:
     clear_line_bbox_map = defaultdict(list)
     ambiguous_line_bbox_map = defaultdict(list)
     for line_id, line_parts in partial_line_bbox_map.items():
@@ -202,12 +210,14 @@ def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap) -> Tupl
             else:
                 clear_line_bbox_map[line_id].append(part)
 
-    additional_clear_line = postprocess_ambiguous_lines(ambiguous_line_bbox_map)
+    # TODO: use separating seams for postprocessing
+    additional_clear_line, leftover_ambiguous_line_map = postprocess_ambiguous_lines(ambiguous_line_bbox_map,
+                                                                                     separating_seams)
     for line_id, line_parts in additional_clear_line.items():
         for line_part in line_parts:
             clear_line_bbox_map[line_id].extend(line_part)
 
-    return ambiguous_line_bbox_map, clear_line_bbox_map
+    return leftover_ambiguous_line_map, clear_line_bbox_map
 
 
 def format_line_bboxes(ambiguous_line_bbox_map: LineMap, clear_line_bbox_map: LineMap, shift: Tuple[int] = (0, 0)) -> List[Line]:
@@ -237,9 +247,8 @@ def format_line_bboxes(ambiguous_line_bbox_map: LineMap, clear_line_bbox_map: Li
     return formatted_line_bboxes
 
 
-def visualize_bboxes(image, medial_seams, clear_line_bbox_map, additional_line_bbox_map, ambiguous_line_bbox_map,
-                     partial_line_bbox_map,
-                     orig_bboxes):  # TODO: remove orig_bboxes
+def visualize_bboxes(image, medial_seams, separating_seams, clear_line_bbox_map, additional_line_bbox_map,
+                     ambiguous_line_bbox_map, partial_line_bbox_map, orig_bboxes):  # TODO: remove orig_bboxes
     from PIL import ImageDraw
     image_draw = ImageDraw.Draw(image)
 
@@ -250,6 +259,9 @@ def visualize_bboxes(image, medial_seams, clear_line_bbox_map, additional_line_b
         points = [(x, y) for y, x in medial_seam if y > 0]
         image_draw.line(points, fill=(0, 0, 255), width=5)
         # image_draw.line(points, fill=(255, 0, 0), width=5)
+    for separating_seam in separating_seams:
+        points = [(x, y) for y, x in separating_seam]
+        image_draw.line(points, fill='purple', width=5)
     # Only bboxes that were added later
     for line_id, line_bboxes in additional_line_bbox_map.items():
         draw_bounding_boxes(image, [BBox(b.left - 3, b.top - 3, b.right + 3, b.bottom + 3) for b in
@@ -265,10 +277,10 @@ def visualize_bboxes(image, medial_seams, clear_line_bbox_map, additional_line_b
             color = (0, 255 if part_id % 2 == 0 else 100, 0)
             draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
     # ambiguous boxes
-    for i, line_id in enumerate(ambiguous_line_bbox_map.keys()):
-        for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
-            color = (255, 0, 0) if part_id % 2 == 0 else (250, 128, 114)
-            draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
+    # for i, line_id in enumerate(ambiguous_line_bbox_map.keys()):
+    #     for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
+    #         color = (255, 0, 0) if part_id % 2 == 0 else (250, 128, 114)
+    #         draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
     image.show()
     # TODO: clean
     # debug_image_path = Path('test/extracted_lines/debug.png')
@@ -287,6 +299,9 @@ def extract_lines_from_image(orig_bboxes: Tuple[LineBBox, ...], orig_segmented_i
     logging.info(f'Slice width for r={r}: {segmented_image.width // r}')
 
     medial_seams = calculate_medial_seams(segmented_image, r=r, b=b, min_num_maxima_in_seam=min_num_maxima_in_seam)
+    sigma = 3.0  # TODO: to param
+    energy_map = calculate_energy_map(segmented_image, sigma=sigma)
+    separating_seams = calculate_separating_seams(medial_seams, energy_map)
     if len(medial_seams) > 0:
         # Try to match all bboxes to medial seams
         line_bbox_map, unmatched_bboxes = map_bboxes_to_lines(bbox, medial_seams)
@@ -294,11 +309,13 @@ def extract_lines_from_image(orig_bboxes: Tuple[LineBBox, ...], orig_segmented_i
                                                                                         unmatched_bboxes)
         new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map)
         partial_line_bbox_map = split_lines(new_line_bbox_map)
-        ambiguous_line_bbox_map, clear_line_bbox_map = split_lines_into_clear_and_ambiguous(partial_line_bbox_map)
+        ambiguous_line_bbox_map, clear_line_bbox_map = split_lines_into_clear_and_ambiguous(partial_line_bbox_map,
+                                                                                            separating_seams)
 
         if debug:
-            visualize_bboxes(segmented_image, medial_seams, clear_line_bbox_map, additional_line_bbox_map,
-                             ambiguous_line_bbox_map, partial_line_bbox_map, orig_bboxes)
+            # TODO: have another look at visualization, seems fishy (the drawing of ambiguous boxes)
+            visualize_bboxes(segmented_image, medial_seams, separating_seams, clear_line_bbox_map,
+                             additional_line_bbox_map, ambiguous_line_bbox_map, partial_line_bbox_map, orig_bboxes)
 
         # TODO: postprocess ambig. lines - maybe use original seam carving code for this one
         # final_bboxes = format_line_bboxes(ambiguous_line_bbox_map, clear_line_bbox_map, bbox_shift)

@@ -1,7 +1,7 @@
 import math
+from typing import Union, Tuple
 
 import pytest
-from typing import Union, Tuple
 
 from stylegan_code_finder.segmentation.analysis_segmenter import AnalysisSegmenter
 

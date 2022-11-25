@@ -5,13 +5,11 @@ from typing import List
 
 import PIL.Image
 import torch
-import torchvision.transforms.functional
+import torchvision.transforms.functional as F
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms
-from tqdm import tqdm
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-import torchvision.transforms.functional as F
 
 if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
     import pydevd_pycharm

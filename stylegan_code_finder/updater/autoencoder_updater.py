@@ -1,12 +1,12 @@
 import torch
+from pytorch_training import Updater
+from pytorch_training.reporter import get_current_reporter
+from pytorch_training.updater import UpdateDisabler, GradientApplier
 from torch import nn
 from torch.nn import functional as F
 from torch.nn.parallel import DistributedDataParallel
 
 from stylegan_code_finder.losses.lpips import PerceptualLoss
-from pytorch_training import Updater
-from pytorch_training.reporter import get_current_reporter
-from pytorch_training.updater import UpdateDisabler, GradientApplier
 
 
 class AutoencoderUpdater(Updater):

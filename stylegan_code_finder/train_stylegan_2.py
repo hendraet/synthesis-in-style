@@ -15,11 +15,11 @@ from pytorch_training.extensions.lr_scheduler import LRScheduler
 from pytorch_training.optimizer import GradientClipAdam
 from pytorch_training.trainer import DistributedTrainer
 from pytorch_training.triggers import get_trigger
+from stylegan_code_finder.evaluation.fid_score import FIDScore
+from stylegan_code_finder.evaluation.stylegan_image_plotter import StyleGANImagePlotter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from stylegan_code_finder.evaluation.fid_score import FIDScore
-from stylegan_code_finder.evaluation.stylegan_image_plotter import StyleGANImagePlotter
 from stylegan_code_finder.updater.stylegan_2_updater import Stylegan2Updater as Updater
 from stylegan_code_finder.utils.config import load_yaml_config, merge_config_and_args
 from stylegan_code_finder.utils.data_loading import build_data_loader, resilient_loader

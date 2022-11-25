@@ -1,7 +1,7 @@
+import random
 from itertools import chain
 from typing import Iterator, Sequence, List, Dict
 
-import random
 import torch
 import torch.nn.functional as F
 from torch import nn

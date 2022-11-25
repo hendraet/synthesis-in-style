@@ -9,10 +9,8 @@ import cv2
 import numpy
 from PIL import Image
 from PIL.Image import Image as ImageClass
-from tqdm import tqdm
-from tqdm.contrib import tenumerate
-
 from pytorch_training.images import is_image
+from tqdm.contrib import tenumerate
 
 
 def crop_patches(image: ImageClass, image_size: int) -> List[ImageClass]:

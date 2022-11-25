@@ -10,7 +10,8 @@ from typing import Optional
 from PIL import Image, UnidentifiedImageError
 from tqdm import tqdm
 
-from stylegan_code_finder.handwriting_extraction.get_lines_from_segementation_bboxes import process_segmentation, set_opt_args_for_hw_extraction
+from stylegan_code_finder.handwriting_extraction.get_lines_from_segementation_bboxes import process_segmentation, \
+    set_opt_args_for_hw_extraction
 from stylegan_code_finder.segmentation.analysis_segmenter import VotingAssemblySegmenter
 from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import draw_segmentation
 from stylegan_code_finder.utils.config import load_yaml_config

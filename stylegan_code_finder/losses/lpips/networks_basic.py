@@ -1,11 +1,11 @@
 
 from __future__ import absolute_import
 
-import stylegan_code_finder.losses.lpips as util
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+import stylegan_code_finder.losses.lpips as util
 from . import pretrained_networks as pn
 
 

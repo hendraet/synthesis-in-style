@@ -6,7 +6,6 @@ import imgaug
 import imgaug.augmenters as iaa
 import numpy
 from PIL import Image
-
 from pytorch_training.data.json_dataset import JSONDataset
 
 DENOISING_VARIANCES = [5, 10, 15, 25, 35, 50]

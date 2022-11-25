@@ -1,9 +1,10 @@
+from typing import Any
+
 import cv2
 import numpy
 import torch
 import torch.nn.functional as F
 from torch import nn
-from typing import Any
 
 from stylegan_code_finder.utils.segmentation_utils import get_contours_from_prediction
 

@@ -1,8 +1,8 @@
 import numpy
 import torch
+from create_dataset_for_segmentation import generate_images
 from tqdm import tqdm
 
-from create_dataset_for_segmentation import generate_images
 from stylegan_code_finder.data.base_dataset_gan_dataset import BaseDatasetGANDataset
 from stylegan_code_finder.latent_projecting import Latents
 from stylegan_code_finder.utils.segmentation_utils import segmentation_image_to_class_image

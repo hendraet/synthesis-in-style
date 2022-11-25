@@ -10,11 +10,12 @@ from typing import NoReturn
 import torch
 from PIL import Image, UnidentifiedImageError
 from PIL.Image import Image as ImageClass
+from pytorch_training.images import is_image
 from tqdm import tqdm
 
-from pytorch_training.images import is_image
 from stylegan_code_finder.segmentation.analysis_segmenter import VotingAssemblySegmenter
-from stylegan_code_finder.segmentation.evaluation.segmentation_metric_calculation import calculate_confusion_matrix, calculate_metric
+from stylegan_code_finder.segmentation.evaluation.segmentation_metric_calculation import calculate_confusion_matrix, \
+    calculate_metric
 from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import visualize_segmentation
 from stylegan_code_finder.utils.image_utils import resize_image
 

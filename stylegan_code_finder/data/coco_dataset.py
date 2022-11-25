@@ -2,9 +2,8 @@ from collections import defaultdict
 from typing import Union, Dict
 
 import torch
-from torch.utils.data.dataloader import default_collate
-
 from pytorch_training.data.json_dataset import JSONDataset
+from torch.utils.data.dataloader import default_collate
 
 
 class COCODataset(JSONDataset):

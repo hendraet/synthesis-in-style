@@ -2,8 +2,8 @@ import numpy
 import pytest
 import torch
 from PIL import Image
-
 from pytorch_training.images.utils import make_image
+
 from stylegan_code_finder.utils.image_utils import render_text_on_image
 
 

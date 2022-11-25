@@ -1,9 +1,6 @@
 from contextlib import contextmanager
 from typing import Any, Dict
 
-import numpy as np
-import scipy
-import scipy.stats
 import torch
 from torch import nn
 

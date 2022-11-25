@@ -1,6 +1,6 @@
-import torch
-
 from collections import OrderedDict
+
+import torch
 
 
 def ordereddict_insert(d, item, index=None, key=None):

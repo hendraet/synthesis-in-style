@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-
-from PIL import ImageColor
 from typing import Tuple, Dict, Union, List, NamedTuple
 
 import cv2
 import numpy
 import torch
+from PIL import ImageColor
 
 Color = Tuple[int, int, int]
 # {class_name: {sub_image_id: list_of_batches[list_of_contours[numpy_array_of_points, ...]/None, ...]}}

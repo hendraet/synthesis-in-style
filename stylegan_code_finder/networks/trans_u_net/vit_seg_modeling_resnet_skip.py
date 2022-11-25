@@ -1,7 +1,5 @@
-import math
-
-from os.path import join as pjoin
 from collections import OrderedDict
+from os.path import join as pjoin
 
 import torch
 import torch.nn as nn

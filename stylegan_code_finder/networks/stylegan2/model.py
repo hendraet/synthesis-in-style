@@ -1,13 +1,10 @@
 import math
 import random
-import functools
-import operator
+import typing
 
 import torch
-import typing
 from torch import nn
 from torch.nn import functional as F
-from torch.autograd import Function
 
 from .op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
 

@@ -1,6 +1,6 @@
 import numpy as np
-import torch
 import settings
+import torch
 
 
 def fast_hist(label_true, label_pred):

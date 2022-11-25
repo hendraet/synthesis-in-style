@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from typing import Union, Dict, Tuple, Iterable, Optional
+from typing import Union, Dict, Tuple, Iterable
 
 import torch
 

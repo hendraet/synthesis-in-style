@@ -1,13 +1,10 @@
-from collections import defaultdict
+import argparse
 from pathlib import Path
-
 from typing import Dict, List
 
-import argparse
 import numpy
 import torch
 from PIL import Image
-from torch.nn.functional import one_hot
 
 from stylegan_code_finder.utils.segmentation_utils import segmentation_image_to_class_image
 

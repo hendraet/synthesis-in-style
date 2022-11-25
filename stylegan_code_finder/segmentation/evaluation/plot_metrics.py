@@ -11,7 +11,8 @@ from PIL import ImageColor
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from stylegan_code_finder.segmentation.evaluation.evaluate_metrics import get_calculated_score_key_filters, extract_score_name
+from stylegan_code_finder.segmentation.evaluation.evaluate_metrics import get_calculated_score_key_filters, \
+    extract_score_name
 from stylegan_code_finder.segmentation.evaluation.evaluation_utils import get_tabular_results, preprocess_results, \
     group_results_by_hyperparam_values, add_mean_iou
 

@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import Dict, Tuple, List, Union, Optional
 
 import numpy
-import os
-
 import torch
 from PIL import Image
 from pytorch_training.images import make_image
@@ -18,7 +16,8 @@ import global_config
 from stylegan_code_finder.latent_projecting import Latents
 from stylegan_code_finder.networks import load_autoencoder_or_generator, StyleganAutoencoder, TwoStemStyleganAutoencoder
 from stylegan_code_finder.segmentation.base_dataset_segmenter import BaseDatasetSegmenter
-from stylegan_code_finder.segmentation.black_white_handwritten_printed_text_segmenter import BlackWhiteHandwrittenPrintedTextDatasetSegmenter
+from stylegan_code_finder.segmentation.black_white_handwritten_printed_text_segmenter import \
+    BlackWhiteHandwrittenPrintedTextDatasetSegmenter
 from stylegan_code_finder.segmentation.dataset_gan_segmenter import DatasetGANSegmenter
 from stylegan_code_finder.segmentation.evaluation.coco_gt import iter_through_images_in, COCOGtCreator
 from stylegan_code_finder.utils.config import load_config

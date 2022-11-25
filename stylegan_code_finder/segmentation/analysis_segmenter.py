@@ -16,7 +16,6 @@ from stylegan_code_finder.utils.segmentation_utils import BBox
 from stylegan_code_finder.visualization.utils import network_output_to_color_image
 
 
-
 class AnalysisSegmenter:
 
     def __init__(self, model_checkpoint: str, device: str, class_to_color_map: Union[str, Path],

@@ -1,11 +1,11 @@
 import argparse
 import functools
 import shutil
+import warnings
 from pathlib import Path
 from typing import Union, Callable
 
 import torch
-import warnings
 from torch import nn
 
 from stylegan_code_finder.networks.convert_autoencoder_checkpoint import convert_autoencoder_checkpoint
@@ -13,7 +13,8 @@ from stylegan_code_finder.networks.encoder.autoencoder import StyleganAutoencode
     ContentAndStyleStyleganAutoencoder, TwoStemStyleganAutoencoder, DropoutStyleganAutoencoder, \
     SuperResolutionStyleganAutoencoder
 from stylegan_code_finder.networks.encoder.resnet_based_encoder import Encoder
-from stylegan_code_finder.networks.encoder.u_net_like_encoder import UNetLikeEncoder, WPlusEncoder, WEncoder, WWPlusEncoder, WCodeEncoder, \
+from stylegan_code_finder.networks.encoder.u_net_like_encoder import UNetLikeEncoder, WPlusEncoder, WEncoder, \
+    WWPlusEncoder, WCodeEncoder, \
     WPlusResnetNoiseEncoder, WPlusNoNoiseEncoder, NoiseEncoder, WNoNoiseEncoder
 from stylegan_code_finder.networks.stylegan1.model import StyledGenerator, Generator as StyleGan1Generator
 from stylegan_code_finder.networks.swagan.model import Generator as SWAGANGenerator

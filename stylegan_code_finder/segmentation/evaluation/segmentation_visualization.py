@@ -1,18 +1,16 @@
-import cv2
+import argparse
 import warnings
-
-import numpy
-from PIL import ImageColor, Image
-from PIL.ImageDraw import ImageDraw
-from tqdm import tqdm
+from pathlib import Path
 from typing import Dict, Union, Tuple, List, NoReturn
 
-from pathlib import Path
-
-import argparse
+import cv2
+import numpy
 import torch
-
+from PIL import ImageColor, Image
 from PIL.Image import Image as ImageClass
+from PIL.ImageDraw import ImageDraw
+from tqdm import tqdm
+
 from stylegan_code_finder.utils.image_utils import opencv_image_to_pil, pil_image_to_opencv
 from stylegan_code_finder.utils.segmentation_utils import BBox, find_class_contours
 

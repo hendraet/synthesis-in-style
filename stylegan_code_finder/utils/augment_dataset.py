@@ -8,6 +8,7 @@ from PIL import Image
 from pytorch_training.images import is_image
 from tqdm import tqdm
 
+
 def show_combined_images(original_image: numpy.ndarray, segmentation_image: numpy.ndarray,
                          augmented_images: numpy.ndarray, batch_size: int):
     unaugmented_images = numpy.concatenate((original_image, segmentation_image), axis=2)

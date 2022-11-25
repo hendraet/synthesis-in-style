@@ -1,15 +1,13 @@
 import math
 import random
-import functools
-import operator
 
 import torch
 from torch import nn
-from torch.nn import functional as F
-from torch.autograd import Function
 
-from .op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d, conv2d_gradfix
-from ..stylegan2.model import ModulatedConv2d, StyledConv, ConstantInput, PixelNorm, Upsample, Downsample, Blur, EqualLinear, ConvLayer
+from .op import upfirdn2d
+from ..stylegan2.model import ModulatedConv2d, StyledConv, ConstantInput, PixelNorm, Upsample, Downsample, EqualLinear, \
+    ConvLayer
+
 
 def get_haar_wavelet(in_channels):
     haar_wav_l = 1 / (2 ** 0.5) * torch.ones(1, 2)

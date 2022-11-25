@@ -5,12 +5,12 @@ import os
 from collections import OrderedDict
 
 import numpy as np
-import stylegan_code_finder.losses.lpips as util
 import torch
 from scipy.ndimage import zoom
 from torch.autograd import Variable
 from tqdm import tqdm
 
+import stylegan_code_finder.losses.lpips as util
 from . import networks_basic as networks
 from .base_model import BaseModel
 

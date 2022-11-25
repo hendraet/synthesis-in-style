@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Dict
 
 import torch
+from data import get_dataset_class
 from tqdm import tqdm
 from tqdm.contrib import tenumerate
 
-from data import get_dataset_class
 from stylegan_code_finder.evaluation.fid import FID
 from stylegan_code_finder.evaluation.psnr_ssim import PSNRSSIMEvaluator
 from stylegan_code_finder.networks import get_autoencoder, load_weights, StyleganAutoencoder

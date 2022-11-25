@@ -9,13 +9,13 @@ requirements.append('pytorch-training @ git+https://github.com/Bartzi/pytorch-tr
 setuptools.setup(
     name="synthesis-in-style",
     version="1.0",
-    author="",  # TODO:
-    author_email="",  # TODO
-    description="",  # TODO
+    author="",
+    author_email="",
+    description="",
     packages=setuptools.find_packages(),
     install_requires=requirements,
     dependency_links=['https://download.pytorch.org/whl/cu113'],
-    classifiers=[  # TODO
+    classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",

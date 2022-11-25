@@ -1,7 +1,7 @@
 import math
+import pathlib
 from functools import partial
 
-import pathlib
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

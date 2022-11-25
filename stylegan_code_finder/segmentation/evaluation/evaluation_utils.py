@@ -1,8 +1,8 @@
 import itertools
+import operator
 from typing import Tuple, Union, List
 
 import numpy
-import operator
 
 
 def get_calculated_score_key_filters(results: dict, score_key: str = "average") -> List[str]:

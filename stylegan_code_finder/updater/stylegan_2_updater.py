@@ -5,15 +5,15 @@ from typing import Tuple
 
 import torch
 import torch.nn.functional as F
-from torch.nn.parallel import DistributedDataParallel
-from torch import autograd, nn
-
-from stylegan_code_finder.distributed import reduce_sum
-from stylegan_code_finder.networks.stylegan2 import Generator
 from pytorch_training import Updater
 from pytorch_training.distributed import get_world_size
 from pytorch_training.reporter import get_current_reporter
 from pytorch_training.updater import UpdateDisabler, GradientApplier
+from torch import autograd, nn
+from torch.nn.parallel import DistributedDataParallel
+
+from stylegan_code_finder.distributed import reduce_sum
+from stylegan_code_finder.networks.stylegan2 import Generator
 
 
 class Stylegan2Updater(Updater):

@@ -1,7 +1,6 @@
 from typing import List
 
 import torch
-
 from pytorch_training.extensions import ImagePlotter
 
 

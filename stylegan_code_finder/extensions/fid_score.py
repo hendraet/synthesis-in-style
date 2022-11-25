@@ -1,16 +1,14 @@
 from pathlib import Path
+from typing import Union
 
-from torch import nn
-
+from pytorch_training import Extension, Trainer
 from pytorch_training.distributed import get_rank, synchronize
 from pytorch_training.reporter import get_current_reporter
+from torch import nn
 from torch.utils.data import DataLoader
-from typing import Union
 
 from stylegan_code_finder.evaluation.fid import FID, GenerativeFID
 from stylegan_code_finder.networks import StyleganAutoencoder
-
-from pytorch_training import Extension, Trainer
 
 
 class FIDScore(Extension):

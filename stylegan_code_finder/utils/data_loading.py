@@ -11,11 +11,12 @@ from pytorch_training.data.caching_loader import CachingLoader
 from pytorch_training.data.json_dataset import JSONDataset
 from pytorch_training.data.utils import default_loader
 from pytorch_training.distributed import get_world_size, get_rank
+from torch.utils.data import DataLoader, DistributedSampler
+from torchvision import transforms
+
 from stylegan_code_finder.data import AutoencoderDataset
 from stylegan_code_finder.networks import load_autoencoder_or_generator
 from stylegan_code_finder.utils.config import load_config
-from torch.utils.data import DataLoader, DistributedSampler
-from torchvision import transforms
 
 
 def resilient_loader(path):

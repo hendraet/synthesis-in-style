@@ -3,6 +3,7 @@ from typing import Dict, List
 import numpy
 import torch
 from PIL import ImageColor
+
 from stylegan_code_finder.utils.segmentation_utils import Color
 
 

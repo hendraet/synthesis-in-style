@@ -11,7 +11,8 @@ import numpy
 import torch
 
 from stylegan_code_finder.segmentation.base_dataset_segmenter import BaseDatasetSegmenter
-from stylegan_code_finder.utils.segmentation_utils import draw_contours_on_same_sized_canvases, ClassContours, PredictedClusters, \
+from stylegan_code_finder.utils.segmentation_utils import draw_contours_on_same_sized_canvases, ClassContours, \
+    PredictedClusters, \
     ClassContoursForSubImages, BBox
 
 

@@ -8,15 +8,15 @@ from typing import Union, Iterable, Tuple, Dict, Callable
 import numpy
 import torch
 from PIL import ImageColor
+from pytorch_training.images import make_image
 from torch.nn.functional import interpolate
 from torchvision.utils import save_image
 from tqdm import trange
 
 from create_dataset_for_segmentation import build_latent_and_noise_generator
-from stylegan_code_finder.segmentation.gan_local_edit.factor_catalog import FactorCatalog
 from stylegan_code_finder.latent_projecting import Latents
 from stylegan_code_finder.networks import StyleganAutoencoder, TwoStemStyleganAutoencoder, load_autoencoder_or_generator
-from pytorch_training.images import make_image
+from stylegan_code_finder.segmentation.gan_local_edit.factor_catalog import FactorCatalog
 from stylegan_code_finder.utils.config import load_config
 from stylegan_code_finder.utils.data_loading import build_data_loader
 

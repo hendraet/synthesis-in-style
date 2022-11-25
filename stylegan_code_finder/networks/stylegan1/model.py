@@ -1,16 +1,12 @@
 import math
+from math import sqrt
 from typing import Dict
 
 import torch
-
 from torch import nn
-from torch.nn import init
-from torch.nn import functional as F
 from torch.autograd import Function
-
-from math import sqrt
-
-import random
+from torch.nn import functional as F
+from torch.nn import init
 
 
 def init_linear(linear):

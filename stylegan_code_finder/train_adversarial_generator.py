@@ -15,7 +15,8 @@ from pytorch_training.trainer import DistributedTrainer
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-from stylegan_code_finder.networks import load_weights, get_stylegan2_wplus_autoencoder, get_stylegan2_wplus_style_autoencoder  # TODO: check this erroneous import
+from stylegan_code_finder.networks import load_weights, get_stylegan2_wplus_autoencoder, \
+    get_stylegan2_wplus_style_autoencoder  # TODO: check this erroneous import
 from stylegan_code_finder.networks.stylegan2.model import Discriminator as Stylegan2Discriminator
 from stylegan_code_finder.updater.adversarial_updater import AdversarialAutoencoderUpdater
 from stylegan_code_finder.utils.config import load_config, load_yaml_config
