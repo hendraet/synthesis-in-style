@@ -18,42 +18,6 @@ if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
                             stdoutToServer=True, stderrToServer=True, suspend=False)
 
 
-# TODO: commit that deleted original inference file was 4971e0efc728d687f9d6e53ac2ad45d9464c3062
-
-# class TrOCRDataset(data.Dataset):
-#     def __init__(self, json_file: Union[str, Path], root: Union[str, Path] = None):
-#         with Path(json_file).open() as f:
-#             json_data = json.load(f)
-#         self.image_data = json_data['samples']
-#         self.root = Path(root)
-
-# def __len__(self):
-#     return len(self.image_data)
-
-# def __getitem__(self, index: int) -> Dict[str, Any]:
-#     path = Path(self.image_data[index]['path'])
-#     if self.root is not None:
-#         path = self.root / path
-
-# input_image = Image.open(path).convert('RGB')
-# label = self.image_data[index]['string']
-
-# sample = {
-#     'images': input_image,
-#     'labels': label
-# }
-# return sample
-
-
-# def collate_images(batch):
-#     images = [item['images'] for item in batch]
-#     labels = [item['labels'] for item in batch]
-#     return {
-#         'images': images,
-#         'labels': labels
-#     }
-
-
 def get_dataloader(data_path: Path, batch_size: int) -> DataLoader:
     tfm = transforms.Compose([  # TODO: rethink and see if Nomralization need or if it's done later
         transforms.ToTensor(),
@@ -63,20 +27,6 @@ def get_dataloader(data_path: Path, batch_size: int) -> DataLoader:
     dataloader = DataLoader(dataset, batch_size)
     return dataloader
 
-
-#
-#
-# def create_trocr_report(predictions: List[str], gt_strings: List[str], report_path: Optional[Path]):
-#     logging.basicConfig(level=logging.INFO)
-#     metric = CharErrorRate()
-#     cer = metric(predictions, gt_strings)
-#     logging.info(f'CER is {cer}')
-#
-#     if report_path is not None:
-#         out_data = [f'{pred} {gt}\n' for pred, gt in zip(predictions, gt_strings)]
-#         with report_path.open('w') as out_file:
-#             out_file.write(f'CER: {cer}\n')
-#             out_file.writelines(out_data)
 
 class TrOCRPredictor:
     def __init__(self, model_name: str = 'microsoft/trocr-base-handwritten'):

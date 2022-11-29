@@ -4,15 +4,14 @@ import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Any
 
 import numpy
 from PIL import Image
 
 from stylegan_code_finder.handwriting_extraction.medial_seam_calculation import get_dist_between_bbox_and_seam, \
     calculate_medial_seams, calculate_energy_map, calculate_separating_seams
-from stylegan_code_finder.handwriting_extraction.utils import LineBBox, rotate_polygon, \
-    radians_to_degrees, get_mutual_bbox, get_min_bbox, degrees_to_radians
+from stylegan_code_finder.handwriting_extraction.utils import LineBBox, get_mutual_bbox, get_min_bbox
 from stylegan_code_finder.segmentation.evaluation.segmentation_visualization import draw_bounding_boxes
 from stylegan_code_finder.utils.segmentation_utils import BBox
 
@@ -65,16 +64,6 @@ def load_images(meta_info_path: Path, image_path: Path, segmented_image_path: Pa
 
 def get_bboxes_from_dict(bbox_dict):
     return tuple([LineBBox(*bbox) for bboxes in list(bbox_dict.values()) for bbox in bboxes])
-
-
-def preprocess(segmentation_image: Image.Image, bboxes: Tuple[LineBBox, ...], padding: int = 10) -> (
-        Image.Image, Line, List[int]):
-    # Reduce segmentation image to area where bboxes are present. Slight performance speed up
-    top_left = [max(min(values) - padding, 0) for values in list(zip(*bboxes))[:2]]
-    bottom_right = [max(values) + 10 for values in list(zip(*bboxes))[2:]]
-    min_segmentation_image = segmentation_image.crop((top_left[0], top_left[1], bottom_right[0], bottom_right[1]))
-    shifted_bboxes = numpy.asarray([b.bbox for b in bboxes]) - numpy.asarray([*top_left, *top_left])
-    return min_segmentation_image, tuple((LineBBox(*bbox) for bbox in shifted_bboxes)), top_left
 
 
 def map_bboxes_to_lines(bboxes: Tuple[LineBBox, ...], medial_seams: numpy.ndarray) -> Tuple[
@@ -181,8 +170,9 @@ def postprocess_ambiguous_lines(ambiguous_line_bbox_map: LineMap, separating_sea
             unambig_parts = []
             current_unambig_part = []
             ambig_parts = []
-            # TODO: comment this shit
-            # TODO: debug this and maybe use separating seams
+            # Basically removes ambiguous parts from the line and tries to form line parts from the remaining bboxes
+            # TODO: Separating Seams could be used to reduce the bbox of the ambiguous parts instead of removing them
+            #  completely. However, it might not help much
             for bbox in line_part:
                 if bbox.is_ambiguous():
                     ambig_parts.append(bbox)
@@ -199,7 +189,7 @@ def postprocess_ambiguous_lines(ambiguous_line_bbox_map: LineMap, separating_sea
     return additional_clear_lines, leftover_ambiguous_lines
 
 
-def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap, separating_seams: list) -> Tuple[LineMap, LineMap]:
+def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap, separating_seams: Optional[list] = None) -> Tuple[LineMap, LineMap]:
     clear_line_bbox_map = defaultdict(list)
     ambiguous_line_bbox_map = defaultdict(list)
     for line_id, line_parts in partial_line_bbox_map.items():
@@ -210,7 +200,6 @@ def split_lines_into_clear_and_ambiguous(partial_line_bbox_map: LineMap, separat
             else:
                 clear_line_bbox_map[line_id].append(part)
 
-    # TODO: use separating seams for postprocessing
     additional_clear_line, leftover_ambiguous_line_map = postprocess_ambiguous_lines(ambiguous_line_bbox_map,
                                                                                      separating_seams)
     for line_id, line_parts in additional_clear_line.items():
@@ -247,8 +236,8 @@ def format_line_bboxes(ambiguous_line_bbox_map: LineMap, clear_line_bbox_map: Li
     return formatted_line_bboxes
 
 
-def visualize_bboxes(image, medial_seams, separating_seams, clear_line_bbox_map, additional_line_bbox_map,
-                     ambiguous_line_bbox_map, partial_line_bbox_map, orig_bboxes):  # TODO: remove orig_bboxes
+def visualize_bboxes(image, medial_seams, clear_line_bbox_map, additional_line_bbox_map, ambiguous_line_bbox_map,
+                     partial_line_bbox_map, orig_bboxes, separating_seams=None):
     from PIL import ImageDraw
     image_draw = ImageDraw.Draw(image)
 
@@ -259,52 +248,48 @@ def visualize_bboxes(image, medial_seams, separating_seams, clear_line_bbox_map,
         points = [(x, y) for y, x in medial_seam if y > 0]
         image_draw.line(points, fill=(0, 0, 255), width=5)
         # image_draw.line(points, fill=(255, 0, 0), width=5)
-    for separating_seam in separating_seams:
-        points = [(x, y) for y, x in separating_seam]
-        image_draw.line(points, fill='purple', width=5)
+    if separating_seams is not None:
+        for separating_seam in separating_seams:
+            points = [(x, y) for y, x in separating_seam]
+            image_draw.line(points, fill='purple', width=5)
+    # All bboxes color-coded by line
+    # for i, line_id in enumerate(partial_line_bbox_map.keys()):
+    #     for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
+    #         color = (255 if i % 2 == 0 else 0, 255 if part_id % 2 == 0 else 0, 0)
+    #         draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
+    # clear boxes
+    for i, (line_id, line) in enumerate(clear_line_bbox_map.items()):
+        for part_id, line_part in enumerate(line):
+            color = (0, 255 if line_id % 2 == 0 else 100, 0)
+            draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
+    # ambiguous boxes
+    for i, (line_id, line) in enumerate(ambiguous_line_bbox_map.items()):
+        for part_id, line_part in enumerate(line):
+            color = (255, 0, 0) if line_id % 2 == 0 else (250, 128, 114)
+            draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
     # Only bboxes that were added later
     for line_id, line_bboxes in additional_line_bbox_map.items():
         draw_bounding_boxes(image, [BBox(b.left - 3, b.top - 3, b.right + 3, b.bottom + 3) for b in
                                     additional_line_bbox_map[line_id]], outline_color=(153, 0, 204))
-    # All bboxes color-coded by line
-    for i, line_id in enumerate(partial_line_bbox_map.keys()):
-        for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
-            color = (255 if i % 2 == 0 else 0, 255 if part_id % 2 == 0 else 0, 0)
-            draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
-    # clear boxes
-    for i, line_id in enumerate(clear_line_bbox_map.keys()):
-        for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
-            color = (0, 255 if part_id % 2 == 0 else 100, 0)
-            draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
-    # ambiguous boxes
-    # for i, line_id in enumerate(ambiguous_line_bbox_map.keys()):
-    #     for part_id, line_part in enumerate(partial_line_bbox_map[line_id]):
-    #         color = (255, 0, 0) if part_id % 2 == 0 else (250, 128, 114)
-    #         draw_bounding_boxes(image, [b.bbox for b in line_part], outline_color=color)
-    image.show()
-    # TODO: clean
+    # image.show()
     # debug_image_path = Path('test/extracted_lines/debug.png')
     # image.save(debug_image_path)
 
 
-def extract_lines_from_image(orig_bboxes: Tuple[LineBBox, ...], orig_segmented_image: Image.Image,
-                             slice_width: int = 256, b: float = 0.0003, min_num_maxima_in_seam: int = 2,
-                             debug: bool = False) -> dict:
-    ### Preprocess image
-    # TODO maybe remove this "optimization" completely
-    # segmented_image, bbox, bbox_shift = preprocess(orig_segmented_image, orig_bboxes)
-    segmented_image = orig_segmented_image
-    bbox = orig_bboxes
+def extract_lines_from_image(bboxes: Tuple[LineBBox, ...], segmented_image: Image.Image, slice_width: int = 256,
+                             b: float = 0.0003, min_num_maxima_in_seam: int = 2, debug: bool = False) -> dict:
     r = segmented_image.width // slice_width
     logging.info(f'Slice width for r={r}: {segmented_image.width // r}')
 
     medial_seams = calculate_medial_seams(segmented_image, r=r, b=b, min_num_maxima_in_seam=min_num_maxima_in_seam)
-    sigma = 3.0  # TODO: to param
-    energy_map = calculate_energy_map(segmented_image, sigma=sigma)
-    separating_seams = calculate_separating_seams(medial_seams, energy_map)
+    # TODO: only calculate seams if they are actually used for postprocessing
+    # sigma = 3.0  # TODO: make parameter
+    # energy_map = calculate_energy_map(segmented_image, sigma=sigma)
+    # separating_seams = calculate_separating_seams(medial_seams, energy_map)
+    separating_seams = None
     if len(medial_seams) > 0:
         # Try to match all bboxes to medial seams
-        line_bbox_map, unmatched_bboxes = map_bboxes_to_lines(bbox, medial_seams)
+        line_bbox_map, unmatched_bboxes = map_bboxes_to_lines(bboxes, medial_seams)
         additional_line_bbox_map, still_unmatched_bboxes = integrate_non_matched_bboxes(line_bbox_map, medial_seams,
                                                                                         unmatched_bboxes)
         new_line_bbox_map = merge_line_bbox_maps(line_bbox_map, additional_line_bbox_map)
@@ -313,12 +298,9 @@ def extract_lines_from_image(orig_bboxes: Tuple[LineBBox, ...], orig_segmented_i
                                                                                             separating_seams)
 
         if debug:
-            # TODO: have another look at visualization, seems fishy (the drawing of ambiguous boxes)
-            visualize_bboxes(segmented_image, medial_seams, separating_seams, clear_line_bbox_map,
-                             additional_line_bbox_map, ambiguous_line_bbox_map, partial_line_bbox_map, orig_bboxes)
+            visualize_bboxes(segmented_image, medial_seams, clear_line_bbox_map, additional_line_bbox_map,
+                             ambiguous_line_bbox_map, partial_line_bbox_map, bboxes, separating_seams)
 
-        # TODO: postprocess ambig. lines - maybe use original seam carving code for this one
-        # final_bboxes = format_line_bboxes(ambiguous_line_bbox_map, clear_line_bbox_map, bbox_shift)
         final_bboxes = format_line_bboxes(ambiguous_line_bbox_map, clear_line_bbox_map)
     else:
         final_bboxes = []
@@ -335,46 +317,13 @@ def extract_lines_from_image(orig_bboxes: Tuple[LineBBox, ...], orig_segmented_i
     return results
 
 
-def crop_min_bbox_from_image(min_bbox, mid_point, rotation, image):
-    # TODO: clean whole function
+def crop_min_bbox_from_image(min_bbox: numpy.ndarray, image: Image.Image) -> Image.Image:
     crop_bbox = (min_bbox[:, 0].min(), min_bbox[:, 1].min(), min_bbox[:, 0].max(), min_bbox[:, 1].max())
     small_image = image.crop(crop_bbox)
-    # TODO: to coreect rotation was a good idea, but would need some more thinking. Especially rotations close to
-    #  90 degrees cause problems. These bboxes are not really rotated 88° but more like -2°
-    if False and rotation != 0.0:
-        # box_line_points = tuple(min_bbox[:2].tolist())
-        # rad_rotation = get_line_rotation(box_line_points)  # TODO: remove function too
-        rad_rotation = degrees_to_radians(rotation)
-
-        # mid_point = numpy.mean(min_bbox, axis=0, dtype=numpy.int32)
-        rot = rotate_polygon(numpy.array(min_bbox), numpy.array(mid_point), rad_rotation)  # TODO: does not seems to work correctly for larger tilts
-        # TODO: not sure that points are ordered like this
-        rotated_min_bbox = BBox(rot[0][0], rot[0][1], rot[2][0], rot[2][1])  # TODO: could also average the other points or maybe add an assertion that rotation is not too high
-        # shifted_min_bbox = BBox(rotated_min_bbox.left - crop_bbox[0], rotated_min_bbox.top - crop_bbox[1],
-        #                         rotated_min_bbox.right - crop_bbox[0], rotated_min_bbox.bottom - crop_bbox[1])
-
-        small_image = small_image.rotate(-radians_to_degrees(rad_rotation), expand=False)
-    else:
-        rotated_min_bbox = BBox(min(min_bbox[:, 0]), min(min_bbox[:, 1]), max(min_bbox[:, 0]), max(min_bbox[:, 1]))
-    shifted_min_bbox = BBox(rotated_min_bbox.left - crop_bbox[0], rotated_min_bbox.top - crop_bbox[1],
-                            rotated_min_bbox.right - crop_bbox[0], rotated_min_bbox.bottom - crop_bbox[1])
-
-    assert (
-            shifted_min_bbox.left >= 0 and
-            shifted_min_bbox.top >= 0 and
-            shifted_min_bbox.right >= 0 and
-            shifted_min_bbox.bottom >= 0 and
-            shifted_min_bbox.left <= small_image.width and
-            shifted_min_bbox.top <= small_image.height and
-            shifted_min_bbox.right <= small_image.width and
-            shifted_min_bbox.bottom <= small_image.height
-    ), 'Shifted bboxes was calculated improperly and is overflowing'
-    line_image = small_image.crop(shifted_min_bbox)
-
-    return line_image
+    return small_image
 
 
-def crop_lines(image: Image.Image, line_bboxes: dict, original_image_path, min_num_bboxes: int = 2,  # TODO: maybe remove original_image_path
+def crop_lines(image: Image.Image, line_bboxes: dict, original_image_path, min_num_bboxes: int = 2,
                min_aspect_ratio: float = 2., min_line_area: int = 10000, keep_ambiguous_lines: bool = False):
     num_cropped_images = 0
     for line_infos in line_bboxes:
@@ -390,8 +339,8 @@ def crop_lines(image: Image.Image, line_bboxes: dict, original_image_path, min_n
             line_infos['filtered_out'] = True
             continue
 
-        min_bbox, mid_point, rotation = get_min_bbox(line_infos)
-        line_image = crop_min_bbox_from_image(min_bbox, mid_point, rotation, image)
+        min_bbox = get_min_bbox(line_infos)
+        line_image = crop_min_bbox_from_image(min_bbox, image)
         line_infos['image'] = line_image
         line_infos['filtered_out'] = False
         num_cropped_images += 1
@@ -406,7 +355,7 @@ def save_lines(line_bboxes: List[dict], original_image_path, out_dir: Path):
     for line_infos in line_bboxes:
         if line_infos['filtered_out']:
             continue
-        filename = f"{original_image_path.with_suffix('')}__{line_infos['line_id']}_{line_infos['part_id']}_{'ambiguous' if line_infos['is_ambiguous'] else 'clean'}.png"
+        filename = f"{original_image_path.stem}__{line_infos['line_id']}_{line_infos['part_id']}_{'ambiguous' if line_infos['is_ambiguous'] else 'clean'}.png"
         out_path = out_dir / filename
         line_infos['image'].save(out_path)
 
@@ -414,7 +363,7 @@ def save_lines(line_bboxes: List[dict], original_image_path, out_dir: Path):
 def process_segmentation(bbox_dict: dict, segmented_image: Image.Image, original_image: Image.Image, slice_width: int,
                          original_image_name: Path, out_dir: Optional[Path] = None, keep_ambiguous_lines: bool = False,
                          min_num_bboxes: int = 2, min_aspect_ratio: float = 2., min_line_area: int = 10000,
-                         debug: bool = False):  # TODO: specify return
+                         debug: bool = False) -> Dict[str, Any]:
     bboxes = get_bboxes_from_dict(bbox_dict)
     results = extract_lines_from_image(bboxes, segmented_image, slice_width=slice_width, debug=debug)
 

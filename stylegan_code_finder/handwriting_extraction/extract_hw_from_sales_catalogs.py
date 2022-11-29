@@ -43,7 +43,7 @@ def get_segmenter(model_config: dict, root_dir: Path = Path('../scripts'), origi
         batch_size=batch_size,
         max_image_size=int(model_config.get("max_image_size", 0)),
         print_progress=True,
-        show_confidence_in_segmentation=show_confidence  # TODO: plot conf
+        show_confidence_in_segmentation=show_confidence
     )
     return segmenter
 
@@ -61,8 +61,6 @@ def save_segmentation_json(json_out_path, bbox_dict, hyperparams, checkpoint_pat
 
 
 def main(args: argparse.Namespace):
-    # TODO: also extract meta information such as location and maybe also confidences?
-    # TODO: find out if rotated text can/should be extracted (90° vs slight rotations)
     output_root_dir = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/extract_hw_test_run')  # TODO: magic string
     output_root_dir.mkdir(exist_ok=True, parents=True)
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -75,7 +73,7 @@ def main(args: argparse.Namespace):
                               show_confidence=getattr(model_config, "show_confidence", False))
 
     # High Precision settings
-    hyperparameters = {  # TODO: move to config?
+    hyperparameters = {
         'trans_u_net': {
             'min_confidence': 0.9,
             'min_contour_area':	15,
@@ -109,7 +107,6 @@ def main(args: argparse.Namespace):
         except UnidentifiedImageError:
             logging.error(f"File {image_path} is not an image.")
             continue
-        # image = preprocess_images(original_image, args)  # TODO: maybe also resize
         image = original_image.convert('L')
 
         assembled_prediction = segmenter.segment_image(image)

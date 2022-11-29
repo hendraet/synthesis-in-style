@@ -216,7 +216,7 @@ def main(args: argparse.Namespace) -> NoReturn:
 
     if evaluate:
         results = prepare_results(args.handle_existing, output_json_path, model_config, segmenter.config,
-                                  class_to_color_map)  # TODO: no `-vis` only allowed
+                                  class_to_color_map)
     else:
         print("No metrics specified, no evaluation will be run")
 
@@ -243,7 +243,7 @@ def main(args: argparse.Namespace) -> NoReturn:
             # AnalysisSegmenter will save the highest confidences for each pixel from the different patches. However,
             # the VotingAssemblySegmenter will save the normalized, summed confidences over all the patches for each
             # pixel.
-            assembled_prediction = segmenter.segment_image(image)  # TODO: seems like prediciton is coming out the wrong way, i.e. class 1 is background and class 0 is HW
+            assembled_prediction = segmenter.segment_image(image)
 
             if evaluate:
                 try:

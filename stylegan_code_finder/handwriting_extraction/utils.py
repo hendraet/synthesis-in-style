@@ -64,7 +64,7 @@ def get_mutual_bbox(bboxes):
     return LineBBox(min(l), min(t), max(r), max(b))
 
 
-def get_min_bbox(line_infos) -> Tuple[numpy.ndarray, Tuple[float, float], float]:
+def get_min_bbox(line_infos) -> numpy.ndarray:
     line_points = []
     bbox_points = [LineBBox(*bbox).as_points() for bbox in line_infos['bboxes']]
     for bbox in bbox_points:
@@ -73,9 +73,8 @@ def get_min_bbox(line_infos) -> Tuple[numpy.ndarray, Tuple[float, float], float]
     convex_hull = ConvexHull(line_points)
     hull_points = line_points[convex_hull.vertices]
     min_area_rect = cv2.minAreaRect(hull_points)
-    mid_point, rotation = min_area_rect[1:]
     min_bbox = numpy.int0(cv2.boxPoints(min_area_rect))
-    return min_bbox, mid_point, rotation
+    return min_bbox
 
 
 def radians_to_degrees(rad: float) -> float:

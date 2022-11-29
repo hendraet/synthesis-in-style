@@ -261,7 +261,8 @@ def calculate_separating_seams(medial_seams: numpy.ndarray, energy_map: numpy.nd
         reduced_medial_seam = medial_seam[medial_seam[:, 0] > 0]
         reduced_next_medial_seam = next_medial_seam[next_medial_seam[:, 0] > 0]
 
-        # TODO: technically two neighboring seams do not have to be relevant for each other, e.g., if they are not overlapping
+        # TODO: technically two neighboring seams do not have to be relevant for each other, e.g., if they are not
+        #  overlapping or are too far from each other
         local_energy_map, x_range = get_local_energy_map(reduced_medial_seam, reduced_next_medial_seam, energy_map)
         if local_energy_map is None:
             continue

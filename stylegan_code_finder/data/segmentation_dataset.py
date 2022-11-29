@@ -26,7 +26,6 @@ class SegmentationDataset(JSONDataset):
         with class_to_color_map_path.open() as f:
             self.class_to_color_map = json.load(f)
             self.reversed_class_to_color_map = {v: k for k, v in self.class_to_color_map.items()}
-        # TODO: maybe add assertion somewhere that there are no other colors than the ones in the class_to_color_map
         assert self.background_class_name in self.class_to_color_map, \
             f"Background class name: {self.background_class_name} not found in class to color map"
 
