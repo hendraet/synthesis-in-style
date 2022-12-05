@@ -31,7 +31,7 @@ def set_opt_args_for_hw_extraction(parser):
                         help='Resulting lines with fewer bboxes will be discarded')
     parser.add_argument('--min-aspect-ratio', type=float, default=2., help='Minimum aspect ratio of a line')
     parser.add_argument('--min-line-area', type=int, default=10000,
-                        help='Minimum area of a line')  # TODO: highly dependent on image size
+                        help='Minimum area of a line')
     parser.add_argument('--debug', action='store_true', default=False)
 
 
@@ -282,7 +282,6 @@ def extract_lines_from_image(bboxes: Tuple[LineBBox, ...], segmented_image: Imag
     logging.info(f'Slice width for r={r}: {segmented_image.width // r}')
 
     medial_seams = calculate_medial_seams(segmented_image, r=r, b=b, min_num_maxima_in_seam=min_num_maxima_in_seam)
-    # TODO: only calculate seams if they are actually used for postprocessing
     # sigma = 3.0  # TODO: make parameter
     # energy_map = calculate_energy_map(segmented_image, sigma=sigma)
     # separating_seams = calculate_separating_seams(medial_seams, energy_map)

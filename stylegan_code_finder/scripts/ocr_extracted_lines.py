@@ -19,7 +19,7 @@ if os.environ.get('REMOTE_PYCHARM_DEBUG_SESSION', False):
 
 
 def get_dataloader(data_path: Path, batch_size: int) -> DataLoader:
-    tfm = transforms.Compose([  # TODO: rethink and see if Nomralization need or if it's done later
+    tfm = transforms.Compose([
         transforms.ToTensor(),
         transforms.Resize((384, 384))
     ])
@@ -30,8 +30,6 @@ def get_dataloader(data_path: Path, batch_size: int) -> DataLoader:
 
 class TrOCRPredictor:
     def __init__(self, model_name: str = 'microsoft/trocr-base-handwritten'):
-        # TODO: make Processor and Decoder exchangeable: https://huggingface.co/models?other=trocr
-        # TODO: check why some weights are not initialized
         self.processor = TrOCRProcessor.from_pretrained(model_name)
         self.model = VisionEncoderDecoderModel.from_pretrained(model_name).cuda()
 
@@ -71,7 +69,6 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == '__main__':
-    # TODO: clean file
     parser = argparse.ArgumentParser(description='Inference of TrOCR model on given dataset')
     parser.add_argument('dataset_path', type=Path, help='path to config with common train settings, such as LR')
     parser.add_argument('--image_size', type=int, nargs='+', default=[64, 256],

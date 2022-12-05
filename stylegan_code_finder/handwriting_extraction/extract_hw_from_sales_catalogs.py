@@ -61,7 +61,7 @@ def save_segmentation_json(json_out_path, bbox_dict, hyperparams, checkpoint_pat
 
 
 def main(args: argparse.Namespace):
-    output_root_dir = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/extract_hw_test_run')  # TODO: magic string
+    output_root_dir = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/extract_hw_test_run')
     output_root_dir.mkdir(exist_ok=True, parents=True)
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     error_log_path = output_root_dir / f'error_log_{timestamp}.txt'
@@ -90,13 +90,13 @@ def main(args: argparse.Namespace):
     with args.txt_path.open() as f:
         lines = [line.strip() for line in f]
 
-    for line in tqdm(lines[12:15], desc='Processing images'):  # TODO no limit
+    for line in tqdm(lines[12:15], desc='Processing images'):
         image_path = args.txt_path.parent / line
-        # image_path = Path('/dataset/sales_cat/00000761/010000006782654_002/010000006782654_002_0030.jpg')  # TODO: remove
-        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_lines.png')  # TODO: remove
-        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/010000006782654_002_0030_rotated.png')  # TODO: remove
-        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_difficult_lines_small.png')  # TODO: remove
-        image_path = Path('/home/hendrik/pipeline-project/src/test/test_image_2_medium.png')  # TODO: remove
+        # image_path = Path('/dataset/sales_cat/00000761/010000006782654_002/010000006782654_002_0030.jpg')
+        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_lines.png')
+        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/010000006782654_002_0030_rotated.png')
+        # image_path = Path('/home/hendrik/wpi-gan-generator-project/datasets/debug/debug_hw_difficult_lines_small.png')
+        image_path = Path('/home/hendrik/pipeline-project/src/test/test_image_2_medium.png')
 
         if not image_path.exists():
             logging.warning(f'{image_path} does not exist')
