@@ -36,12 +36,14 @@ StyleGAN2 implementation and custom CUDA kernel codes are taken from official th
 If you find the code useful, please cite our paper:
 
 ```bibtex
-@misc{bartz2022synthesis,
-      title={Synthesis in Style: Semantic Segmentation of Historical Documents using Synthetic Data}, 
-      author={Christian Bartz and Hendrik Rätz and Jona Otholt and Christoph Meinel and Haojin Yang},
-      year={2022},
-      eprint={2107.06777},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@INPROCEEDINGS{9956471,
+  author={Bartz, Christian and Raetz, Hendrik and Otholt, Jona and Meinel, Christoph and Yang, Haojin},
+  booktitle={2022 26th International Conference on Pattern Recognition (ICPR)}, 
+  title={Synthesis in Style: Semantic Segmentation of Historical Documents using Synthetic Data}, 
+  year={2022},
+  volume={},
+  number={},
+  pages={3878-3884},
+  doi={10.1109/ICPR56361.2022.9956471}
 }
 ```
